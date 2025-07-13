@@ -23,7 +23,7 @@
         .view { display: none; }
         .view.active { display: block; }
         /* Ensure calendar and news widgets take full height */
-        #calendar-view, #news-view, .tradingview-widget-container {
+        #calendar-view, #news-view .tradingview-widget-container {
             height: 100%;
             width: 100%;
         }
@@ -43,6 +43,15 @@
             font-size: 0.875rem;
             text-transform: uppercase;
             color: #9ca3af;
+        }
+        .active-nav {
+            background-color: #eff6ff; /* bg-blue-50 */
+            color: #2563eb; /* text-blue-600 */
+            border-right: 4px solid #2563eb;
+        }
+        .dark .active-nav {
+            background-color: rgba(30, 58, 138, 0.5); /* bg-blue-900/50 */
+            color: #60a5fa; /* dark:text-blue-400 */
         }
     </style>
 </head>
@@ -148,60 +157,122 @@
         const createCalculatorHTML = () => `<h1 class="text-3xl font-bold">Kalkulator Risiko</h1><div class="grid grid-cols-1 md:grid-cols-2 gap-8"><div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow space-y-4"><h2 class="text-xl font-semibold">Parameter</h2><div id="calculator-inputs"></div></div><div id="calculator-result" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow flex flex-col justify-center items-center"></div></div>`;
         const createProfileHTML = () => `<h1 class="text-3xl font-bold">Profil Pengguna</h1><div class="max-w-md"><form id="profile-form" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow space-y-4"><div><label class="block text-sm font-medium">Nama Pengguna</label><input type="text" name="name" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div><button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg">Simpan Profil</button></form></div>`;
 
-        // --- Rendering Functions ---
-        function renderDashboard() { /* ... (no changes) ... */ }
-        function renderJournal() { /* ... (no changes) ... */ }
-        function renderJournalTable() { /* ... (no changes) ... */ }
-        function renderPlan() { /* ... (no changes) ... */ }
-        function renderCalculator() { /* ... (no changes) ... */ }
-        function renderProfile() { /* ... (no changes) ... */ }
+        // --- Rendering Functions (FIXED) ---
+        function renderDashboard() {
+            views.dashboard.innerHTML = createDashboardHTML();
+            const stats = calculateStats();
+            document.getElementById('dashboard-stats').innerHTML = `<div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow"><h4 class="text-sm text-gray-500 dark:text-gray-400">Total P/L</h4><p class="text-2xl font-bold ${stats.totalPnl >= 0 ? 'text-green-500' : 'text-red-500'}">$${stats.totalPnl.toFixed(2)}</p></div><div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow"><h4 class="text-sm text-gray-500 dark:text-gray-400">Win Rate</h4><p class="text-2xl font-bold">${stats.winRate.toFixed(1)}%</p></div><div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow"><h4 class="text-sm text-gray-500 dark:text-gray-400">Avg. R/R</h4><p class="text-2xl font-bold">${stats.averageRiskReward.toFixed(2)}:1</p></div><div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow"><h4 class="text-sm text-gray-500 dark:text-gray-400">Total Trade</h4><p class="text-2xl font-bold">${trades.length}</p></div>`;
+            const monthlyTarget = parseFloat(plan.monthlyTarget) || 1000;
+            const progress = Math.max(0, (stats.totalPnl / monthlyTarget) * 100);
+            document.getElementById('dashboard-progress').innerHTML = `<h3 class="text-lg font-semibold mb-2">Progres Target Bulanan ($${monthlyTarget.toFixed(2)})</h3><div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4"><div class="bg-blue-600 h-4 rounded-full" style="width: ${Math.min(progress, 100)}%;"></div></div><p class="text-right text-sm mt-1 text-gray-500 dark:text-gray-400">${progress.toFixed(1)}% tercapai</p>`;
+            renderCharts(stats);
+        }
+
+        function renderJournal() {
+            views.journal.innerHTML = createJournalHTML();
+            const form = document.getElementById('trade-form');
+            form.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"><div><label class="block text-sm font-medium">Tanggal</label><input type="date" name="date" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md" value="${new Date().toISOString().split('T')[0]}"></div><div><label class="block text-sm font-medium">Pair/Symbol</label><input type="text" name="pair" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div><div><label class="block text-sm font-medium">Ukuran Lot</label><input type="number" step="0.01" name="lotSize" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div><div><label class="block text-sm font-medium">Harga Entry</label><input type="number" step="any" name="entryPrice" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div><div><label class="block text-sm font-medium">Stop Loss</label><input type="number" step="any" name="stopLoss" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div><div><label class="block text-sm font-medium">Take Profit</label><input type="number" step="any" name="takeProfit" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div><div><label class="block text-sm font-medium">Hasil</label><select name="result" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"><option value="win">Win</option><option value="loss">Loss</option><option value="breakeven">Break Even</option></select></div><div><label class="block text-sm font-medium">Profit/Loss ($)</label><input type="number" step="any" name="pnl" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div></div><div><label class="block text-sm font-medium">Alasan Entry</label><textarea name="reason" rows="3" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></textarea></div><button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg">Simpan Trade</button>`;
+            document.getElementById('add-trade-btn').addEventListener('click', () => form.classList.toggle('hidden'));
+            form.addEventListener('submit', handleAddTrade);
+            renderJournalTable();
+        }
+
+        function renderJournalTable() {
+            const tableBody = document.getElementById('journal-table-body');
+            if (!tableBody) return;
+            tableBody.innerHTML = trades.slice().sort((a, b) => new Date(b.date) - new Date(a.date)).map(trade => `<tr class="bg-white dark:bg-gray-800 border-b dark:border-gray-700"><td class="px-6 py-4">${trade.date}</td><td class="px-6 py-4 font-medium text-gray-900 dark:text-white">${trade.pair}</td><td class="px-6 py-4"><span class="px-2 py-1 rounded-full text-xs font-semibold ${trade.result === 'win' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : trade.result === 'loss' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' : 'bg-gray-100 dark:bg-gray-600'}">${trade.result}</span></td><td class="px-6 py-4 font-medium ${parseFloat(trade.pnl) >= 0 ? 'text-green-500' : 'text-red-500'}">${parseFloat(trade.pnl) >= 0 ? `+${parseFloat(trade.pnl).toFixed(2)}` : parseFloat(trade.pnl).toFixed(2)}</td><td class="px-6 py-4 max-w-xs truncate">${trade.reason || ''}</td><td class="px-6 py-4"><button data-id="${trade.id}" class="delete-trade-btn text-red-500"><i data-lucide="trash-2" class="w-5 h-5"></i></button></td></tr>`).join('');
+            if (trades.length === 0) tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-gray-500 dark:text-gray-400">Belum ada data trade.</td></tr>`;
+            lucide.createIcons();
+        }
+
+        function renderPlan() {
+            views.plan.innerHTML = createPlanHTML();
+            const form = document.getElementById('plan-form');
+            const currentPlan = plan || {};
+            form.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow space-y-4"><h2 class="text-xl font-semibold border-b pb-2">Strategi Utama</h2><div><label class="block text-sm font-medium">Fokus Pair</label><input type="text" name="focusedPairs" value="${currentPlan.focusedPairs || ''}" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div><div><label class="block text-sm font-medium">Strategi</label><input type="text" name="strategy" value="${currentPlan.strategy || ''}" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div><div><label class="block text-sm font-medium">Timeframe</label><input type="text" name="timeframe" value="${currentPlan.timeframe || ''}" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div></div><div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow space-y-4"><h2 class="text-xl font-semibold border-b pb-2">Manajemen Risiko</h2><div><label class="block text-sm font-medium">Risiko (%)</label><input type="number" name="riskPerTrade" value="${currentPlan.riskPerTrade || 1}" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div><div><label class="block text-sm font-medium">Target ($)</label><input type="number" name="monthlyTarget" value="${currentPlan.monthlyTarget || 2000}" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div><div><label class="block text-sm font-medium">Max Drawdown (%)</label><input type="number" name="maxDrawdown" value="${currentPlan.maxDrawdown || 10}" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div></div></div><button type="submit" class="w-full md:w-auto px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg">Simpan Rencana</button>`;
+            form.addEventListener('submit', handleSavePlan);
+        }
+        
+        function renderCalculator() {
+            views.calculator.innerHTML = createCalculatorHTML();
+            document.getElementById('calculator-inputs').innerHTML = `<div><label class="block text-sm font-medium">Modal Akun ($)</label><input type="number" name="accountBalance" value="10000" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div><div><label class="block text-sm font-medium">Risiko (%)</label><input type="number" name="riskPercentage" value="1" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div><div><label class="block text-sm font-medium">Stop Loss (pips)</label><input type="number" name="stopLossPips" value="20" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div><div><label class="block text-sm font-medium">Nilai per Pip ($)</label><input type="number" name="pipValue" value="10" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div>`;
+            document.getElementById('calculator-inputs').addEventListener('input', handleCalculateRisk);
+            handleCalculateRisk();
+        }
         
         function renderNews() {
             views.news.innerHTML = createNewsHTML();
-            
-            // --- Render Countdown Timers ---
-            // Anda bisa mengganti event ini dengan berita penting berikutnya
-            const upcomingEvents = [
-                { name: "Non-Farm Payrolls (US)", date: "2025-08-01T19:30:00", id: "nfp-countdown" },
-                { name: "CPI Report (US)", date: "2025-08-14T19:30:00", id: "cpi-countdown" }
-            ];
-
+            const upcomingEvents = [ { name: "Non-Farm Payrolls (US)", date: "2025-08-01T12:30:00Z", id: "nfp-countdown" }, { name: "CPI Report (US)", date: "2025-08-14T12:30:00Z", id: "cpi-countdown" } ];
             const countdownContainer = document.getElementById('countdown-container');
-            countdownContainer.innerHTML = upcomingEvents.map(event => `
-                <div class="countdown-box">
-                    <h3 class="text-lg font-semibold mb-2">${event.name}</h3>
-                    <div id="${event.id}" class="flex justify-center gap-4"></div>
-                </div>
-            `).join('');
-            
+            countdownContainer.innerHTML = upcomingEvents.map(event => `<div class="countdown-box"><h3 class="text-lg font-semibold mb-2">${event.name}</h3><div id="${event.id}" class="flex justify-center gap-4"></div></div>`).join('');
             upcomingEvents.forEach(event => startCountdown(event.id, event.date));
-            
-            // --- Render News Widgets ---
-            const theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-            createTradingViewNewsWidget('xauusd-news-container', 'Berita XAU/USD', ["OANDA:XAUUSD"]);
-            createTradingViewNewsWidget('btcusd-news-container', 'Berita BTC/USD', ["COINBASE:BTCUSD"]);
+            createTradingViewNewsWidget('xauusd-news-container', 'Berita XAU/USD', "OANDA:XAUUSD");
+            createTradingViewNewsWidget('btcusd-news-container', 'Berita BTC/USD', "COINBASE:BTCUSD");
         }
 
-        function renderCalendar() { /* ... (no changes) ... */ }
+        function renderCalendar() {
+            const container = views.calendar;
+            container.innerHTML = ''; // Clear previous widget
+            const theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+            const widgetContainer = document.createElement('div');
+            widgetContainer.className = 'tradingview-widget-container';
+            const script = document.createElement('script');
+            script.type = 'text/javascript';
+            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-events.js';
+            script.async = true;
+            script.innerHTML = JSON.stringify({ "width": "100%", "height": "100%", "colorTheme": theme, "isTransparent": true, "locale": "id", "importance_filter": "0,1" });
+            widgetContainer.appendChild(script);
+            container.appendChild(widgetContainer);
+        }
+
+        function renderProfile() {
+            views.profile.innerHTML = createProfileHTML();
+            const form = document.getElementById('profile-form');
+            form.querySelector('[name="name"]').value = profile.name || 'Trader';
+            form.addEventListener('submit', handleSaveProfile);
+        }
 
         // --- Calculation and Logic Functions ---
-        function calculateStats() { /* ... (no changes) ... */ }
-        function renderCharts(stats) { /* ... (no changes) ... */ }
-        function handleCalculateRisk() { /* ... (no changes) ... */ }
+        function calculateStats() {
+            const totalTrades = trades.length;
+            if (totalTrades === 0) return { winRate: 0, totalPnl: 0, averageRiskReward: 0, winTrades: 0, lossTrades: 0 };
+            const winTrades = trades.filter(t => t.result === 'win').length;
+            const lossTrades = trades.filter(t => t.result === 'loss').length;
+            const totalPnl = trades.reduce((acc, t) => acc + (parseFloat(t.pnl) || 0), 0);
+            const totalRiskReward = trades.reduce((acc, t) => { const entry = parseFloat(t.entryPrice), sl = parseFloat(t.stopLoss), tp = parseFloat(t.takeProfit); if(entry && sl && tp && sl !== entry) return acc + (Math.abs(tp - entry) / Math.abs(entry - sl)); return acc; }, 0);
+            return { winRate: (winTrades / totalTrades) * 100, totalPnl, averageRiskReward: totalTrades > 0 ? totalRiskReward / totalTrades : 0, winTrades, lossTrades };
+        }
+        
+        function renderCharts(stats) {
+            const pnlCtx = document.getElementById('pnlChart')?.getContext('2d');
+            const winLossCtx = document.getElementById('winLossChart')?.getContext('2d');
+            if (pnlChart) pnlChart.destroy();
+            if (winLossChart) winLossChart.destroy();
+            if (pnlCtx) pnlChart = new Chart(pnlCtx, { type: 'bar', data: { labels: trades.map((t, i) => `Trade ${i+1}`), datasets: [{ label: 'P/L ($)', data: trades.map(t => parseFloat(t.pnl) || 0), backgroundColor: trades.map(t => (parseFloat(t.pnl) || 0) >= 0 ? 'rgba(34, 197, 94, 0.7)' : 'rgba(239, 68, 68, 0.7)') }] }, options: { scales: { y: { beginAtZero: true } } } });
+            if (winLossCtx) winLossChart = new Chart(winLossCtx, { type: 'pie', data: { labels: ['Menang', 'Kalah'], datasets: [{ data: [stats.winTrades, stats.lossTrades], backgroundColor: ['rgba(34, 197, 94, 0.8)', 'rgba(239, 68, 68, 0.8)'] }] } });
+        }
+        
+        function handleCalculateRisk() {
+            const inputs = document.getElementById('calculator-inputs');
+            const resultEl = document.getElementById('calculator-result');
+            if (!inputs || !resultEl) return;
+            const values = { accountBalance: parseFloat(inputs.querySelector('[name="accountBalance"]').value), riskPercentage: parseFloat(inputs.querySelector('[name="riskPercentage"]').value), stopLossPips: parseFloat(inputs.querySelector('[name="stopLossPips"]').value), pipValue: parseFloat(inputs.querySelector('[name="pipValue"]').value) };
+            if (Object.values(values).every(v => v > 0)) { const riskAmount = (values.accountBalance * values.riskPercentage) / 100; const lotSize = riskAmount / (values.stopLossPips * values.pipValue); resultEl.innerHTML = `<h2 class="text-xl font-semibold mb-4">Hasil Kalkulasi</h2><div class="text-center space-y-4"><div><h3 class="text-gray-500 dark:text-gray-400">Risiko Uang</h3><p class="text-3xl font-bold text-red-500">$${riskAmount.toFixed(2)}</p></div><div><h3 class="text-gray-500 dark:text-gray-400">Ukuran Lot</h3><p class="text-4xl font-bold text-blue-600">${lotSize.toFixed(2)}</p></div></div>`; } else { resultEl.innerHTML = `<p class="text-gray-500 dark:text-gray-400">Isi semua parameter.</p>`; }
+        }
 
-        function createTradingViewNewsWidget(containerId, title, symbols) {
+        function createTradingViewNewsWidget(containerId, title, symbol) { // Parameter is now singular 'symbol'
             const container = document.getElementById(containerId);
             if (!container) return;
             const theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-            
             container.innerHTML = `<h2 class="text-2xl font-semibold mb-4">${title}</h2><div id="${containerId}-widget" class="h-[500px]"></div>`;
             
+            // This is the TradingView "Timeline" widget
             new TradingView.widget({
                 "container_id": `${containerId}-widget`,
                 "width": "100%",
                 "height": "100%",
-                "symbols": symbols,
-                "feedMode": "market",
+                "feedMode": "symbol", // Correct feed mode
+                "symbol": symbol,    // CORRECTED: Use 'symbol' (singular) instead of 'symbols'
                 "colorTheme": theme,
                 "isTransparent": true,
                 "displayMode": "regular",
@@ -214,28 +285,15 @@
             const interval = setInterval(() => {
                 const now = new Date().getTime();
                 const distance = countDownDate - now;
-
                 const days = Math.floor(distance / (1000 * 60 * 60 * 24));
                 const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                 const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
                 const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
                 const container = document.getElementById(elementId);
                 if (container) {
-                    if (distance < 0) {
-                        clearInterval(interval);
-                        container.innerHTML = `<div class="text-xl font-bold text-green-500">Berita Telah Dirilis!</div>`;
-                    } else {
-                        container.innerHTML = `
-                            <div><div class="time">${days}</div><div class="label">Hari</div></div>
-                            <div><div class="time">${hours}</div><div class="label">Jam</div></div>
-                            <div><div class="time">${minutes}</div><div class="label">Menit</div></div>
-                            <div><div class="time">${seconds}</div><div class="label">Detik</div></div>
-                        `;
-                    }
-                } else {
-                     clearInterval(interval);
-                }
+                    if (distance < 0) { clearInterval(interval); container.innerHTML = `<div class="text-xl font-bold text-green-500">Berita Telah Dirilis!</div>`; } 
+                    else { container.innerHTML = `<div><div class="time">${days}</div><div class="label">Hari</div></div><div><div class="time">${hours}</div><div class="label">Jam</div></div><div><div class="time">${minutes}</div><div class="label">Menit</div></div><div><div class="time">${seconds}</div><div class="label">Detik</div></div>`; }
+                } else { clearInterval(interval); }
             }, 1000);
         }
 
@@ -261,32 +319,26 @@
             lucide.createIcons();
         }
         
-        async function handleAddTrade(e) { /* ... (no changes) ... */ }
-        async function handleDeleteTrade(e) { /* ... (no changes) ... */ }
-        async function handleSavePlan(e) { /* ... (no changes) ... */ }
-        async function handleSaveProfile(e) { /* ... (no changes) ... */ }
+        async function handleAddTrade(e) { e.preventDefault(); const formData = new FormData(e.target); const tradeData = Object.fromEntries(formData.entries()); try { await addDoc(collection(db, 'artifacts', appId, 'users', userId, 'trades'), { ...tradeData, createdAt: serverTimestamp() }); e.target.reset(); e.target.classList.add('hidden'); } catch (error) { console.error("Error adding trade:", error); alert("Gagal menambahkan trade."); } }
+        async function handleDeleteTrade(e) { if (!e.target.closest('.delete-trade-btn')) return; const btn = e.target.closest('.delete-trade-btn'); const tradeId = btn.dataset.id; if (confirm("Yakin ingin menghapus trade ini?")) { try { await deleteDoc(doc(db, 'artifacts', appId, 'users', userId, 'trades', tradeId)); } catch (error) { console.error("Error deleting trade:", error); alert("Gagal menghapus trade."); } } }
+        async function handleSavePlan(e) { e.preventDefault(); const formData = new FormData(e.target); const planData = Object.fromEntries(formData.entries()); try { await setDoc(doc(db, 'artifacts', appId, 'users', userId, 'plan', 'mainPlan'), planData, { merge: true }); alert("Rencana berhasil disimpan!"); } catch (error) { console.error("Error saving plan:", error); alert("Gagal menyimpan rencana."); } }
+        async function handleSaveProfile(e) { e.preventDefault(); const formData = new FormData(e.target); const profileData = Object.fromEntries(formData.entries()); try { await setDoc(doc(db, 'artifacts', appId, 'users', userId, 'profile', 'mainProfile'), profileData, { merge: true }); alert("Profil berhasil disimpan!"); } catch (error) { console.error("Error saving profile:", error); alert("Gagal menyimpan profil."); } }
 
         // --- Initialization ---
         function initApp() {
             const themeToggle = document.getElementById('theme-toggle');
-            
             const setTheme = (isDark) => {
-                const icon = isDark ? 'sun' : 'moon';
-                themeToggle.innerHTML = `<i data-lucide="${icon}" class="w-5 h-5"></i><span class="hidden lg:block ml-4">Ganti Tema</span>`;
+                themeToggle.innerHTML = `<i data-lucide="${isDark ? 'sun' : 'moon'}" class="w-5 h-5"></i><span class="hidden lg:block ml-4">Ganti Tema</span>`;
                 lucide.createIcons();
             };
-
             themeToggle.addEventListener('click', () => {
                 document.documentElement.classList.toggle('dark');
                 const isDark = document.documentElement.classList.contains('dark');
                 setTheme(isDark);
-                
                 if (views.calendar.classList.contains('active')) renderCalendar();
                 if (views.news.classList.contains('active')) renderNews();
             });
-            
-            setTheme(document.documentElement.classList.contains('dark')); // Set initial theme icon
-
+            setTheme(document.documentElement.classList.contains('dark'));
             navMenu.addEventListener('click', handleNavigation);
             mainContent.addEventListener('click', handleDeleteTrade);
         }
@@ -296,15 +348,12 @@
             if (user) {
                 userId = user.uid;
                 userIdDisplay.textContent = `ID: ${userId}`;
-                
-                // Load all user data...
                 const tradesRef = collection(db, 'artifacts', appId, 'users', userId, 'trades');
                 onSnapshot(query(tradesRef), (snapshot) => { trades = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })); if (views.dashboard.classList.contains('active')) renderDashboard(); if (views.journal.classList.contains('active')) renderJournalTable(); });
                 const planRef = doc(db, 'artifacts', appId, 'users', userId, 'plan', 'mainPlan');
                 onSnapshot(planRef, (doc) => { plan = doc.exists() ? doc.data() : { monthlyTarget: 2000 }; if (views.dashboard.classList.contains('active')) renderDashboard(); if (views.plan.classList.contains('active')) renderPlan(); });
                 const profileRef = doc(db, 'artifacts', appId, 'users', userId, 'profile', 'mainProfile');
                 onSnapshot(profileRef, (doc) => { profile = doc.exists() ? doc.data() : { name: 'Trader' }; profileNameDisplay.textContent = profile.name; if (views.profile.classList.contains('active')) renderProfile(); });
-
                 loadingView.style.display = 'none';
                 views.dashboard.classList.add('active');
                 renderDashboard();
@@ -316,7 +365,7 @@
 
         initApp();
     </script>
-    <!-- TradingView Ticker Tape Widget Script -->
-    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <!-- TradingView Widget Script -->
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js" async></script>
 </body>
 </html>
