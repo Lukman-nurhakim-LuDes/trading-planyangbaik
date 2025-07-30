@@ -17,6 +17,45 @@
       "sizes": "512x512",
       "type": "image/png"
     }
+  ],
+  "orientation": "portrait",
+  "screenshots": [
+    {
+      "src": "screenshots/dashboard-mobile.png",
+      "sizes": "375x667",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Tampilan Dashboard di Ponsel"
+    },
+    {
+      "src": "screenshots/journal-mobile.png",
+      "sizes": "375x667",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Tampilan Jurnal Trading di Ponsel"
+    },
+    {
+      "src": "screenshots/dashboard-desktop.png",
+      "sizes": "1280x800",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Tampilan Dashboard di Desktop"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Tambah Jurnal Baru",
+      "short_name": "Tambah Jurnal",
+      "description": "Cepat tambahkan entri jurnal trading baru",
+      "url": "/?source=pwa-shortcut-journal",
+      "icons": [{ "src": "icons/shortcut-journal.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Lihat Dashboard",
+      "short_name": "Dashboard",
+      "description": "Lihat ringkasan kinerja trading Anda",
+      "url": "/?source=pwa-shortcut-dashboard",
+      "icons": [{ "src": "icons/shortcut-dashboard.png", "sizes": "96x96" }]
+    }
   ]
 }
-
