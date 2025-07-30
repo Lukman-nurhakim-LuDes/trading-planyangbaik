@@ -1,371 +1,1093 @@
 <!DOCTYPE html>
-<html lang="id" class="dark">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dasbor Rencana Trading</title>
-    
-    <!-- Tailwind CSS for styling -->
+    <title>Trading Plan Pro</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#a78bfa">
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Chart.js for charts -->
+    <!-- Inter Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js CDN for Donut Chart -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-
     <style>
-        /* Custom scrollbar for a cleaner look */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #1f2937; }
-        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
-        .view { display: none; }
-        .view.active { display: block; }
-        /* Ensure calendar and news widgets take full height */
-        #calendar-view, #news-view .tradingview-widget-container {
-            height: 100%;
-            width: 100%;
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding-top: 64px; /* Tinggi header */
+            padding-bottom: 64px; /* Tinggi footer */
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(to bottom right, #f0f4f8, #e0e7ff, #f3e8ff); /* Gradien pastel yang lebih lembut */
+            color: #374151; /* Warna teks default */
         }
-        .countdown-box {
-            background-color: rgba(255, 255, 255, 0.05);
-            padding: 1rem;
-            border-radius: 0.5rem;
+        #app-container {
+            flex-grow: 1;
+            padding: 1rem; /* Padding keseluruhan yang lebih kecil */
+            overflow-y: auto;
+        }
+        /* Custom modal styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 100; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 24px; /* Padding modal lebih baik */
+            border-radius: 12px; /* Sudut lebih membulat */
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); /* Bayangan lebih dalam */
+            max-width: 400px;
+            width: 90%;
             text-align: center;
         }
-        .countdown-box .time {
-            font-size: 2.25rem;
-            font-weight: 700;
-            line-height: 1;
-            color: #3b82f6;
+
+        /* Styling untuk tombol navigasi aktif */
+        .nav-button.active {
+            background-color: #d8b4fe; /* purple-300 */
+            color: #6b21a8; /* purple-800 */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
-        .countdown-box .label {
-            font-size: 0.875rem;
-            text-transform: uppercase;
-            color: #9ca3af;
+
+        /* Styling untuk input dan textarea */
+        input[type="number"],
+        input[type="date"],
+        select,
+        textarea {
+            padding: 10px 12px; /* Padding input yang lebih baik */
+            border-radius: 8px; /* Sudut lebih membulat */
+            border: 1px solid #d1d5db; /* Warna border default */
+            transition: all 0.2s ease-in-out;
         }
-        .active-nav {
-            background-color: #eff6ff; /* bg-blue-50 */
-            color: #2563eb; /* text-blue-600 */
-            border-right: 4px solid #2563eb;
+        input[type="number"]:focus,
+        input[type="date"]:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #a78bfa; /* purple-400 */
+            box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.3); /* Ring fokus */
         }
-        .dark .active-nav {
-            background-color: rgba(30, 58, 138, 0.5); /* bg-blue-900/50 */
-            color: #60a5fa; /* dark:text-blue-400 */
+        button {
+            transition: all 0.2s ease-in-out;
+            border-radius: 8px; /* Sudut tombol membulat */
+        }
+        button:hover {
+            transform: translateY(-1px); /* Efek hover ringan */
+        }
+        .shadow-custom {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Bayangan kustom untuk kartu */
+        }
+
+        /* Progress bar styling */
+        progress {
+            width: 100%;
+            height: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            background-color: #e0e7ff; /* light blue-purple */
+        }
+        progress::-webkit-progress-bar {
+            background-color: #e0e7ff;
+            border-radius: 10px;
+        }
+        progress::-webkit-progress-value {
+            background: linear-gradient(to right, #8b5cf6, #a78bfa); /* purple-500 to purple-400 */
+            border-radius: 10px;
+            transition: width 0.5s ease-in-out;
+        }
+        progress::-moz-progress-bar {
+            background: linear-gradient(to right, #8b5cf6, #a78bfa);
+            border-radius: 10px;
         }
     </style>
 </head>
-<body class="bg-slate-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 font-sans">
+<body>
+    <noscript>Anda perlu mengaktifkan JavaScript untuk menjalankan aplikasi ini.</noscript>
 
-    <div class="flex h-screen">
-        <!-- Sidebar -->
-        <nav class="w-20 lg:w-64 bg-white dark:bg-gray-800 shadow-lg flex flex-col justify-between">
-            <div>
-                <div class="flex items-center justify-center lg:justify-start p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700">
-                    <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
-                    <h1 class="hidden lg:block ml-3 text-xl font-bold text-gray-800 dark:text-white">TradePlan</h1>
+    <!-- Header -->
+    <header class="fixed top-0 left-0 right-0 bg-gradient-to-r from-blue-200 to-purple-200 p-4 shadow-lg z-10 rounded-b-xl flex items-center justify-between">
+        <div class="w-1/3"></div> <!-- Placeholder for left alignment -->
+        <h1 class="text-center text-gray-800 font-bold flex-grow" style="font-size: 20px;">Trading Plan Pro</h1>
+        <div id="logout-button-container" class="w-1/3 flex justify-end">
+            <!-- Logout button will be rendered here by JS if user is logged in -->
+        </div>
+    </header>
+
+    <!-- Login/Register Section -->
+    <div id="auth-section" class="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 text-gray-800 p-4">
+        <div class="bg-white p-8 rounded-xl shadow-custom w-full max-w-md">
+            <h2 id="auth-title" class="text-3xl font-bold text-center text-gray-800 mb-8">Login</h2>
+            <div class="space-y-6">
+                <div>
+                    <label for="auth-email" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                    <input type="email" id="auth-email" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-purple-300 focus:border-purple-300" placeholder="your@example.com">
                 </div>
-                <ul id="nav-menu" class="mt-6">
-                    <li data-view="dashboard" class="nav-item active-nav"><a href="#" class="flex items-center justify-center lg:justify-start p-4 text-sm font-medium"><i data-lucide="layout-dashboard" class="w-6 h-6"></i><span class="hidden lg:block ml-4">Dasbor</span></a></li>
-                    <li data-view="journal" class="nav-item"><a href="#" class="flex items-center justify-center lg:justify-start p-4 text-sm font-medium"><i data-lucide="book-open" class="w-6 h-6"></i><span class="hidden lg:block ml-4">Jurnal</span></a></li>
-                    <li data-view="plan" class="nav-item"><a href="#" class="flex items-center justify-center lg:justify-start p-4 text-sm font-medium"><i data-lucide="list-checks" class="w-6 h-6"></i><span class="hidden lg:block ml-4">Rencana</span></a></li>
-                    <li data-view="news" class="nav-item"><a href="#" class="flex items-center justify-center lg:justify-start p-4 text-sm font-medium"><i data-lucide="newspaper" class="w-6 h-6"></i><span class="hidden lg:block ml-4">Berita</span></a></li>
-                    <li data-view="calendar" class="nav-item"><a href="#" class="flex items-center justify-center lg:justify-start p-4 text-sm font-medium"><i data-lucide="calendar-days" class="w-6 h-6"></i><span class="hidden lg:block ml-4">Kalender</span></a></li>
-                    <li data-view="calculator" class="nav-item"><a href="#" class="flex items-center justify-center lg:justify-start p-4 text-sm font-medium"><i data-lucide="calculator" class="w-6 h-6"></i><span class="hidden lg:block ml-4">Kalkulator</span></a></li>
-                    <li data-view="profile" class="nav-item"><a href="#" class="flex items-center justify-center lg:justify-start p-4 text-sm font-medium"><i data-lucide="user-circle" class="w-6 h-6"></i><span class="hidden lg:block ml-4">Profil</span></a></li>
-                </ul>
-            </div>
-            <div class="p-4 border-t border-gray-200 dark:border-gray-700">
-                <div class="hidden lg:block mb-4">
-                    <p id="profile-name-display" class="font-semibold text-gray-800 dark:text-gray-100">Trader</p>
-                    <p id="user-id-display" class="text-xs text-gray-500 dark:text-gray-400 break-words">Loading...</p>
+                <div>
+                    <label for="auth-password" class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                    <input type="password" id="auth-password" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-purple-300 focus:border-purple-300" placeholder="********">
                 </div>
-                <button id="theme-toggle" class="w-full flex items-center justify-center lg:justify-start p-3 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700">
-                    <!-- Content generated by JS -->
+                <p id="auth-error-message" class="text-red-600 text-sm text-center hidden"></p>
+                <button id="auth-submit-button" class="w-full bg-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 transition-all duration-200 shadow-md">
+                    Login
+                </button>
+                <button id="auth-toggle-button" class="w-full text-purple-600 py-2 px-6 rounded-lg font-semibold hover:bg-purple-50 transition-all duration-200">
+                    Belum punya akun? Daftar di sini.
                 </button>
             </div>
-        </nav>
+        </div>
+    </div>
 
-        <!-- Main Content -->
-        <main id="main-content" class="flex-1 overflow-y-auto">
-            <!-- Loading Spinner -->
-            <div id="loading-view" class="flex items-center justify-center h-full">
-                <p class="text-lg text-gray-700 dark:text-gray-300">Memuat data...</p>
+    <!-- Main App Content (hidden by default) -->
+    <div id="main-app-content" class="hidden flex-grow flex flex-col">
+        <div id="app-container" class="max-w-4xl mx-auto w-full">
+            <!-- Content will be rendered here by JavaScript -->
+            <div id="loading-spinner" class="flex items-center justify-center h-64">
+                <p class="text-xl font-semibold text-gray-700">Memuat aplikasi...</p>
             </div>
+            <div id="dashboard-section" class="hidden"></div>
+            <div id="calculator-section" class="hidden"></div>
+            <div id="dailyTarget-section" class="hidden"></div>
+            <div id="journal-section" class="hidden"></div>
+            <div id="calendar-section" class="hidden"></div>
+        </div>
 
-            <div id="dashboard-view" class="view p-4 md:p-6 space-y-6"></div>
-            <div id="journal-view" class="view p-4 md:p-6 space-y-6"></div>
-            <div id="plan-view" class="view p-4 md:p-6 space-y-6"></div>
-            <div id="news-view" class="view p-4 md:p-6 space-y-6"></div>
-            <div id="calendar-view" class="view p-0 md:p-2 h-full"></div>
-            <div id="calculator-view" class="view p-4 md:p-6 space-y-6"></div>
-            <div id="profile-view" class="view p-4 md:p-6 space-y-6"></div>
-        </main>
+        <!-- Bottom Navigation -->
+        <nav class="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-blue-200 to-purple-200 p-2 shadow-xl z-10 flex justify-around items-center rounded-t-xl">
+            <button id="nav-dashboard" class="nav-button flex flex-col items-center p-2 rounded-lg transition-colors duration-200 text-gray-700 hover:bg-purple-100">
+                <span class="text-2xl">📊</span>
+                <span class="text-xs font-medium mt-1">Dashboard</span>
+            </button>
+            <button id="nav-calculator" class="nav-button flex flex-col items-center p-2 rounded-lg transition-colors duration-200 text-gray-700 hover:bg-purple-100">
+                <span class="text-2xl">➕</span>
+                <span class="text-xs font-medium mt-1">Kalkulator</span>
+            </button>
+            <button id="nav-dailyTarget" class="nav-button flex flex-col items-center p-2 rounded-lg transition-colors duration-200 text-gray-700 hover:bg-purple-100">
+                <span class="text-2xl">🎯</span>
+                <span class="text-xs font-medium mt-1">Target Harian</span>
+            </button>
+            <button id="nav-journal" class="nav-button flex flex-col items-center p-2 rounded-lg transition-colors duration-200 text-gray-700 hover:bg-purple-100">
+                <span class="text-2xl">📝</span>
+                <span class="text-xs font-medium mt-1">Jurnal</span>
+            </button>
+            <button id="nav-calendar" class="nav-button flex flex-col items-center p-2 rounded-lg transition-colors duration-200 text-gray-700 hover:bg-purple-100">
+                <span class="text-2xl">🗓️</span>
+                <span class="text-xs font-medium mt-1">Kalender</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Custom Notification Modal -->
+    <div id="notification-modal" class="modal">
+        <div class="modal-content">
+            <h3 class="text-2xl font-bold text-green-600 mb-4">🎉 Selamat! 🎉</h3>
+            <p id="notification-message" class="text-lg text-gray-800 mb-6"></p>
+            <button id="modal-close-button" class="bg-green-500 text-white py-3 px-6 rounded-lg font-semibold hover:bg-green-600 transition-colors duration-200 shadow-md">
+                Oke
+            </button>
+        </div>
     </div>
 
     <!-- Firebase SDKs -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, collection, doc, onSnapshot, addDoc, setDoc, deleteDoc, serverTimestamp, query } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- KONFIGURASI FIREBASE ANDA ---
+        // Global variables for Firebase instances
+        let db;
+        let auth;
+        let userId = null;
+        let isAuthReady = false;
+
+        // Ensure global variables are available or use defaults
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        // Updated firebaseConfig with user provided values
         const firebaseConfig = {
             apiKey: "AIzaSyAPKJfQpYiZkFoIdvZaI2cAQ-Z50mu_gM8",
             authDomain: "trading-plan-416fb.firebaseapp.com",
             projectId: "trading-plan-416fb",
-            storageBucket: "trading-plan-416fb.appspot.com",
+            storageBucket: "trading-plan-416fb.firebasestorage.app",
             messagingSenderId: "140608805879",
             appId: "1:140608805879:web:6ce3def86c9689c2786cf2",
             measurementId: "G-5EGLDF7228"
         };
-        const appId = 'trading-plan-416fb';
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-        // --- Inisialisasi Aplikasi ---
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        let userId = null;
-        let trades = [];
-        let plan = {};
-        let profile = {};
-        let pnlChart = null;
-        let winLossChart = null;
-        
-        // --- State and DOM Elements ---
-        const views = {
-            dashboard: document.getElementById('dashboard-view'),
-            journal: document.getElementById('journal-view'),
-            plan: document.getElementById('plan-view'),
-            news: document.getElementById('news-view'),
-            calendar: document.getElementById('calendar-view'),
-            calculator: document.getElementById('calculator-view'),
-            profile: document.getElementById('profile-view'),
+        // Helper untuk format mata uang Rupiah
+        const formatRupiah = (amount) => {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
+            }).format(amount);
         };
-        const navMenu = document.getElementById('nav-menu');
-        const mainContent = document.getElementById('main-content');
-        const loadingView = document.getElementById('loading-view');
-        const profileNameDisplay = document.getElementById('profile-name-display');
-        const userIdDisplay = document.getElementById('user-id-display');
 
-        // --- Templating Functions ---
-        const createDashboardHTML = () => `<h1 class="text-3xl font-bold">Dasbor Performa</h1><div id="dashboard-stats" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div><div id="dashboard-progress"></div><div class="grid grid-cols-1 lg:grid-cols-2 gap-6"><div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow"><h3 class="font-semibold mb-4">P/L per Trade</h3><canvas id="pnlChart"></canvas></div><div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow"><h3 class="font-semibold mb-4">Distribusi Win/Loss</h3><canvas id="winLossChart"></canvas></div></div>`;
-        const createJournalHTML = () => `<div class="flex justify-between items-center"><h1 class="text-3xl font-bold">Jurnal Trading</h1><button id="add-trade-btn" class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg"><i data-lucide="plus-circle" class="w-5 h-5"></i> Tambah Trade</button></div><form id="trade-form" class="hidden bg-white dark:bg-gray-800 p-6 rounded-lg shadow space-y-4"></form><div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-x-auto"><table class="w-full text-sm text-left"><thead class="text-xs uppercase bg-gray-50 dark:bg-gray-700"><tr><th class="px-6 py-3">Tanggal</th><th class="px-6 py-3">Pair</th><th class="px-6 py-3">Hasil</th><th class="px-6 py-3">P/L ($)</th><th class="px-6 py-3">Alasan</th><th class="px-6 py-3">Aksi</th></tr></thead><tbody id="journal-table-body"></tbody></table></div>`;
-        const createPlanHTML = () => `<h1 class="text-3xl font-bold">Rencana Trading Anda</h1><form id="plan-form" class="space-y-8"></form>`;
-        const createNewsHTML = () => `<h1 class="text-3xl font-bold mb-6">Berita Pasar & Hitung Mundur</h1><div class="mb-8"><h2 class="text-2xl font-semibold mb-4">Hitung Mundur Berita Penting</h2><div id="countdown-container" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div></div><div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><div id="xauusd-news-container"></div><div id="btcusd-news-container"></div></div>`;
-        const createCalculatorHTML = () => `<h1 class="text-3xl font-bold">Kalkulator Risiko</h1><div class="grid grid-cols-1 md:grid-cols-2 gap-8"><div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow space-y-4"><h2 class="text-xl font-semibold">Parameter</h2><div id="calculator-inputs"></div></div><div id="calculator-result" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow flex flex-col justify-center items-center"></div></div>`;
-        const createProfileHTML = () => `<h1 class="text-3xl font-bold">Profil Pengguna</h1><div class="max-w-md"><form id="profile-form" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow space-y-4"><div><label class="block text-sm font-medium">Nama Pengguna</label><input type="text" name="name" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div><button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg">Simpan Profil</button></form></div>`;
+        // Fungsi untuk konversi tanggal ke format YYYY-MM-DD
+        const formatDate = (date) => {
+            const d = new Date(date);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
 
-        // --- Rendering Functions (FIXED) ---
-        function renderDashboard() {
-            views.dashboard.innerHTML = createDashboardHTML();
-            const stats = calculateStats();
-            document.getElementById('dashboard-stats').innerHTML = `<div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow"><h4 class="text-sm text-gray-500 dark:text-gray-400">Total P/L</h4><p class="text-2xl font-bold ${stats.totalPnl >= 0 ? 'text-green-500' : 'text-red-500'}">$${stats.totalPnl.toFixed(2)}</p></div><div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow"><h4 class="text-sm text-gray-500 dark:text-gray-400">Win Rate</h4><p class="text-2xl font-bold">${stats.winRate.toFixed(1)}%</p></div><div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow"><h4 class="text-sm text-gray-500 dark:text-gray-400">Avg. R/R</h4><p class="text-2xl font-bold">${stats.averageRiskReward.toFixed(2)}:1</p></div><div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow"><h4 class="text-sm text-gray-500 dark:text-gray-400">Total Trade</h4><p class="text-2xl font-bold">${trades.length}</p></div>`;
-            const monthlyTarget = parseFloat(plan.monthlyTarget) || 1000;
-            const progress = Math.max(0, (stats.totalPnl / monthlyTarget) * 100);
-            document.getElementById('dashboard-progress').innerHTML = `<h3 class="text-lg font-semibold mb-2">Progres Target Bulanan ($${monthlyTarget.toFixed(2)})</h3><div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4"><div class="bg-blue-600 h-4 rounded-full" style="width: ${Math.min(progress, 100)}%;"></div></div><p class="text-right text-sm mt-1 text-gray-500 dark:text-gray-400">${progress.toFixed(1)}% tercapai</p>`;
-            renderCharts(stats);
-        }
+        // Application State
+        let saldo = 0;
+        let profit = 0;
+        let loss = 0;
+        let monthlyTarget = 0;
+        let currentDayTarget = 0;
+        let currentDayProfitLoss = 0;
+        let journalEntries = [];
+        let activeTab = 'dashboard';
+        let dailyRecords = {}; // Stores { date: { target: amount, profitLoss: amount } }
 
-        function renderJournal() {
-            views.journal.innerHTML = createJournalHTML();
-            const form = document.getElementById('trade-form');
-            form.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"><div><label class="block text-sm font-medium">Tanggal</label><input type="date" name="date" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md" value="${new Date().toISOString().split('T')[0]}"></div><div><label class="block text-sm font-medium">Pair/Symbol</label><input type="text" name="pair" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div><div><label class="block text-sm font-medium">Ukuran Lot</label><input type="number" step="0.01" name="lotSize" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div><div><label class="block text-sm font-medium">Harga Entry</label><input type="number" step="any" name="entryPrice" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div><div><label class="block text-sm font-medium">Stop Loss</label><input type="number" step="any" name="stopLoss" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div><div><label class="block text-sm font-medium">Take Profit</label><input type="number" step="any" name="takeProfit" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div><div><label class="block text-sm font-medium">Hasil</label><select name="result" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"><option value="win">Win</option><option value="loss">Loss</option><option value="breakeven">Break Even</option></select></div><div><label class="block text-sm font-medium">Profit/Loss ($)</label><input type="number" step="any" name="pnl" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div></div><div><label class="block text-sm font-medium">Alasan Entry</label><textarea name="reason" rows="3" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></textarea></div><button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg">Simpan Trade</button>`;
-            document.getElementById('add-trade-btn').addEventListener('click', () => form.classList.toggle('hidden'));
-            form.addEventListener('submit', handleAddTrade);
-            renderJournalTable();
-        }
+        // Chart.js instance for donut chart
+        let donutChart = null;
 
-        function renderJournalTable() {
-            const tableBody = document.getElementById('journal-table-body');
-            if (!tableBody) return;
-            tableBody.innerHTML = trades.slice().sort((a, b) => new Date(b.date) - new Date(a.date)).map(trade => `<tr class="bg-white dark:bg-gray-800 border-b dark:border-gray-700"><td class="px-6 py-4">${trade.date}</td><td class="px-6 py-4 font-medium text-gray-900 dark:text-white">${trade.pair}</td><td class="px-6 py-4"><span class="px-2 py-1 rounded-full text-xs font-semibold ${trade.result === 'win' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : trade.result === 'loss' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' : 'bg-gray-100 dark:bg-gray-600'}">${trade.result}</span></td><td class="px-6 py-4 font-medium ${parseFloat(trade.pnl) >= 0 ? 'text-green-500' : 'text-red-500'}">${parseFloat(trade.pnl) >= 0 ? `+${parseFloat(trade.pnl).toFixed(2)}` : parseFloat(trade.pnl).toFixed(2)}</td><td class="px-6 py-4 max-w-xs truncate">${trade.reason || ''}</td><td class="px-6 py-4"><button data-id="${trade.id}" class="delete-trade-btn text-red-500"><i data-lucide="trash-2" class="w-5 h-5"></i></button></td></tr>`).join('');
-            if (trades.length === 0) tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-gray-500 dark:text-gray-400">Belum ada data trade.</td></tr>`;
-            lucide.createIcons();
-        }
+        // Custom Modal Functions
+        const showNotificationModal = (message) => {
+            document.getElementById('notification-message').innerText = message;
+            document.getElementById('notification-modal').style.display = 'flex';
+        };
 
-        function renderPlan() {
-            views.plan.innerHTML = createPlanHTML();
-            const form = document.getElementById('plan-form');
-            const currentPlan = plan || {};
-            form.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow space-y-4"><h2 class="text-xl font-semibold border-b pb-2">Strategi Utama</h2><div><label class="block text-sm font-medium">Fokus Pair</label><input type="text" name="focusedPairs" value="${currentPlan.focusedPairs || ''}" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div><div><label class="block text-sm font-medium">Strategi</label><input type="text" name="strategy" value="${currentPlan.strategy || ''}" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div><div><label class="block text-sm font-medium">Timeframe</label><input type="text" name="timeframe" value="${currentPlan.timeframe || ''}" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div></div><div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow space-y-4"><h2 class="text-xl font-semibold border-b pb-2">Manajemen Risiko</h2><div><label class="block text-sm font-medium">Risiko (%)</label><input type="number" name="riskPerTrade" value="${currentPlan.riskPerTrade || 1}" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div><div><label class="block text-sm font-medium">Target ($)</label><input type="number" name="monthlyTarget" value="${currentPlan.monthlyTarget || 2000}" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div><div><label class="block text-sm font-medium">Max Drawdown (%)</label><input type="number" name="maxDrawdown" value="${currentPlan.maxDrawdown || 10}" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div></div></div><button type="submit" class="w-full md:w-auto px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg">Simpan Rencana</button>`;
-            form.addEventListener('submit', handleSavePlan);
-        }
-        
-        function renderCalculator() {
-            views.calculator.innerHTML = createCalculatorHTML();
-            document.getElementById('calculator-inputs').innerHTML = `<div><label class="block text-sm font-medium">Modal Akun ($)</label><input type="number" name="accountBalance" value="10000" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div><div><label class="block text-sm font-medium">Risiko (%)</label><input type="number" name="riskPercentage" value="1" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div><div><label class="block text-sm font-medium">Stop Loss (pips)</label><input type="number" name="stopLossPips" value="20" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div><div><label class="block text-sm font-medium">Nilai per Pip ($)</label><input type="number" name="pipValue" value="10" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border rounded-md"></div>`;
-            document.getElementById('calculator-inputs').addEventListener('input', handleCalculateRisk);
-            handleCalculateRisk();
-        }
-        
-        function renderNews() {
-            views.news.innerHTML = createNewsHTML();
-            const upcomingEvents = [ { name: "Non-Farm Payrolls (US)", date: "2025-08-01T12:30:00Z", id: "nfp-countdown" }, { name: "CPI Report (US)", date: "2025-08-14T12:30:00Z", id: "cpi-countdown" } ];
-            const countdownContainer = document.getElementById('countdown-container');
-            countdownContainer.innerHTML = upcomingEvents.map(event => `<div class="countdown-box"><h3 class="text-lg font-semibold mb-2">${event.name}</h3><div id="${event.id}" class="flex justify-center gap-4"></div></div>`).join('');
-            upcomingEvents.forEach(event => startCountdown(event.id, event.date));
-            createTradingViewNewsWidget('xauusd-news-container', 'Berita XAU/USD', "OANDA:XAUUSD");
-            createTradingViewNewsWidget('btcusd-news-container', 'Berita BTC/USD', "COINBASE:BTCUSD");
-        }
+        const hideNotificationModal = () => {
+            document.getElementById('notification-modal').style.display = 'none';
+        };
 
-        function renderCalendar() {
-            const container = views.calendar;
-            container.innerHTML = ''; // Clear previous widget
-            const theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-            const widgetContainer = document.createElement('div');
-            widgetContainer.className = 'tradingview-widget-container';
-            const script = document.createElement('script');
-            script.type = 'text/javascript';
-            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-events.js';
-            script.async = true;
-            script.innerHTML = JSON.stringify({ "width": "100%", "height": "100%", "colorTheme": theme, "isTransparent": true, "locale": "id", "importance_filter": "0,1" });
-            widgetContainer.appendChild(script);
-            container.appendChild(widgetContainer);
-        }
+        // --- UI Rendering Functions ---
 
-        function renderProfile() {
-            views.profile.innerHTML = createProfileHTML();
-            const form = document.getElementById('profile-form');
-            form.querySelector('[name="name"]').value = profile.name || 'Trader';
-            form.addEventListener('submit', handleSaveProfile);
-        }
+        const renderDashboard = () => {
+            const dashboardSection = document.getElementById('dashboard-section');
+            dashboardSection.innerHTML = `
+                <div class="bg-white p-6 rounded-xl shadow-custom mb-6">
+                    <h2 class="text-2xl font-bold mb-6 text-gray-800">Dashboard</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                        <div class="bg-blue-50 p-5 rounded-lg shadow-sm flex flex-col items-center border border-blue-100">
+                            <span class="text-sm text-gray-600 font-medium">Saldo Saat Ini</span>
+                            <span class="text-3xl font-extrabold text-blue-700 mt-1">${formatRupiah(saldo)}</span>
+                        </div>
+                        <div class="bg-green-50 p-5 rounded-lg shadow-sm flex flex-col items-center border border-green-100">
+                            <span class="text-sm text-gray-600 font-medium">Total Profit</span>
+                            <span class="text-3xl font-extrabold text-green-700 mt-1">${formatRupiah(profit)}</span>
+                        </div>
+                        <div class="bg-red-50 p-5 rounded-lg shadow-sm flex flex-col items-center border border-red-100">
+                            <span class="text-sm text-gray-600 font-medium">Total Loss</span>
+                            <span class="text-3xl font-extrabold text-red-700 mt-1">${formatRupiah(loss)}</span>
+                        </div>
+                    </div>
 
-        // --- Calculation and Logic Functions ---
-        function calculateStats() {
-            const totalTrades = trades.length;
-            if (totalTrades === 0) return { winRate: 0, totalPnl: 0, averageRiskReward: 0, winTrades: 0, lossTrades: 0 };
-            const winTrades = trades.filter(t => t.result === 'win').length;
-            const lossTrades = trades.filter(t => t.result === 'loss').length;
-            const totalPnl = trades.reduce((acc, t) => acc + (parseFloat(t.pnl) || 0), 0);
-            const totalRiskReward = trades.reduce((acc, t) => { const entry = parseFloat(t.entryPrice), sl = parseFloat(t.stopLoss), tp = parseFloat(t.takeProfit); if(entry && sl && tp && sl !== entry) return acc + (Math.abs(tp - entry) / Math.abs(entry - sl)); return acc; }, 0);
-            return { winRate: (winTrades / totalTrades) * 100, totalPnl, averageRiskReward: totalTrades > 0 ? totalRiskReward / totalTrades : 0, winTrades, lossTrades };
-        }
-        
-        function renderCharts(stats) {
-            const pnlCtx = document.getElementById('pnlChart')?.getContext('2d');
-            const winLossCtx = document.getElementById('winLossChart')?.getContext('2d');
-            if (pnlChart) pnlChart.destroy();
-            if (winLossChart) winLossChart.destroy();
-            if (pnlCtx) pnlChart = new Chart(pnlCtx, { type: 'bar', data: { labels: trades.map((t, i) => `Trade ${i+1}`), datasets: [{ label: 'P/L ($)', data: trades.map(t => parseFloat(t.pnl) || 0), backgroundColor: trades.map(t => (parseFloat(t.pnl) || 0) >= 0 ? 'rgba(34, 197, 94, 0.7)' : 'rgba(239, 68, 68, 0.7)') }] }, options: { scales: { y: { beginAtZero: true } } } });
-            if (winLossCtx) winLossChart = new Chart(winLossCtx, { type: 'pie', data: { labels: ['Menang', 'Kalah'], datasets: [{ data: [stats.winTrades, stats.lossTrades], backgroundColor: ['rgba(34, 197, 94, 0.8)', 'rgba(239, 68, 68, 0.8)'] }] } });
-        }
-        
-        function handleCalculateRisk() {
-            const inputs = document.getElementById('calculator-inputs');
-            const resultEl = document.getElementById('calculator-result');
-            if (!inputs || !resultEl) return;
-            const values = { accountBalance: parseFloat(inputs.querySelector('[name="accountBalance"]').value), riskPercentage: parseFloat(inputs.querySelector('[name="riskPercentage"]').value), stopLossPips: parseFloat(inputs.querySelector('[name="stopLossPips"]').value), pipValue: parseFloat(inputs.querySelector('[name="pipValue"]').value) };
-            if (Object.values(values).every(v => v > 0)) { const riskAmount = (values.accountBalance * values.riskPercentage) / 100; const lotSize = riskAmount / (values.stopLossPips * values.pipValue); resultEl.innerHTML = `<h2 class="text-xl font-semibold mb-4">Hasil Kalkulasi</h2><div class="text-center space-y-4"><div><h3 class="text-gray-500 dark:text-gray-400">Risiko Uang</h3><p class="text-3xl font-bold text-red-500">$${riskAmount.toFixed(2)}</p></div><div><h3 class="text-gray-500 dark:text-gray-400">Ukuran Lot</h3><p class="text-4xl font-bold text-blue-600">${lotSize.toFixed(2)}</p></div></div>`; } else { resultEl.innerHTML = `<p class="text-gray-500 dark:text-gray-400">Isi semua parameter.</p>`; }
-        }
+                    <div class="bg-gray-50 p-6 rounded-lg shadow-sm mb-8 border border-gray-100">
+                        <h3 class="text-xl font-semibold mb-4 text-gray-800">Tambah Saldo Modal</h3>
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <input type="number" id="addSaldoInput" class="flex-grow p-3 border border-gray-300 rounded-lg focus:ring-purple-300 focus:border-purple-300" placeholder="Contoh: 1.000.000">
+                            <button id="addSaldoButton" class="bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-all duration-200 shadow-md">
+                                Tambah Saldo
+                            </button>
+                        </div>
+                    </div>
 
-        function createTradingViewNewsWidget(containerId, title, symbol) { // Parameter is now singular 'symbol'
-            const container = document.getElementById(containerId);
-            if (!container) return;
-            const theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-            container.innerHTML = `<h2 class="text-2xl font-semibold mb-4">${title}</h2><div id="${containerId}-widget" class="h-[500px]"></div>`;
-            
-            // This is the TradingView "Timeline" widget
-            new TradingView.widget({
-                "container_id": `${containerId}-widget`,
-                "width": "100%",
-                "height": "100%",
-                "feedMode": "symbol", // Correct feed mode
-                "symbol": symbol,    // CORRECTED: Use 'symbol' (singular) instead of 'symbols'
-                "colorTheme": theme,
-                "isTransparent": true,
-                "displayMode": "regular",
-                "locale": "id"
+                    <h3 class="text-xl font-semibold mb-4 text-gray-800">Distribusi Profit/Loss</h3>
+                    <div class="bg-gray-50 p-6 rounded-lg shadow-sm h-72 flex items-center justify-center border border-gray-100">
+                        <canvas id="profitLossDonutChart"></canvas>
+                    </div>
+                </div>
+            `;
+
+            // Add event listener for adding saldo
+            document.getElementById('addSaldoButton').addEventListener('click', () => {
+                const amount = parseFloat(document.getElementById('addSaldoInput').value);
+                if (!isNaN(amount) && amount > 0) {
+                    saldo += amount;
+                    updateUserSummary(); // Update user summary in Firestore
+                    document.getElementById('addSaldoInput').value = ''; // Clear input
+                    showNotificationModal(`${formatRupiah(amount)} telah ditambahkan ke saldo Anda.`);
+                } else {
+                    showNotificationModal('Mohon masukkan jumlah saldo yang valid dan positif.');
+                }
             });
-        }
-        
-        function startCountdown(elementId, targetDate) {
-            const countDownDate = new Date(targetDate).getTime();
-            const interval = setInterval(() => {
-                const now = new Date().getTime();
-                const distance = countDownDate - now;
-                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-                const container = document.getElementById(elementId);
-                if (container) {
-                    if (distance < 0) { clearInterval(interval); container.innerHTML = `<div class="text-xl font-bold text-green-500">Berita Telah Dirilis!</div>`; } 
-                    else { container.innerHTML = `<div><div class="time">${days}</div><div class="label">Hari</div></div><div><div class="time">${hours}</div><div class="label">Jam</div></div><div><div class="time">${minutes}</div><div class="label">Menit</div></div><div><div class="time">${seconds}</div><div class="label">Detik</div></div>`; }
-                } else { clearInterval(interval); }
-            }, 1000);
-        }
 
-        // --- Event Handlers ---
-        function handleNavigation(e) {
-            e.preventDefault();
-            const navItem = e.target.closest('.nav-item');
-            if (!navItem) return;
-            const viewName = navItem.dataset.view;
-            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active-nav'));
-            navItem.classList.add('active-nav');
-            Object.values(views).forEach(view => view.classList.remove('active'));
-            views[viewName].classList.add('active');
-            switch(viewName) {
-                case 'dashboard': renderDashboard(); break;
-                case 'journal': renderJournal(); break;
-                case 'plan': renderPlan(); break;
-                case 'news': renderNews(); break;
-                case 'calendar': renderCalendar(); break;
-                case 'calculator': renderCalculator(); break;
-                case 'profile': renderProfile(); break;
+            // Render Donut Chart
+            const ctx = document.getElementById('profitLossDonutChart').getContext('2d');
+            if (donutChart) {
+                donutChart.destroy(); // Destroy previous chart instance if exists
             }
-            lucide.createIcons();
-        }
-        
-        async function handleAddTrade(e) { e.preventDefault(); const formData = new FormData(e.target); const tradeData = Object.fromEntries(formData.entries()); try { await addDoc(collection(db, 'artifacts', appId, 'users', userId, 'trades'), { ...tradeData, createdAt: serverTimestamp() }); e.target.reset(); e.target.classList.add('hidden'); } catch (error) { console.error("Error adding trade:", error); alert("Gagal menambahkan trade."); } }
-        async function handleDeleteTrade(e) { if (!e.target.closest('.delete-trade-btn')) return; const btn = e.target.closest('.delete-trade-btn'); const tradeId = btn.dataset.id; if (confirm("Yakin ingin menghapus trade ini?")) { try { await deleteDoc(doc(db, 'artifacts', appId, 'users', userId, 'trades', tradeId)); } catch (error) { console.error("Error deleting trade:", error); alert("Gagal menghapus trade."); } } }
-        async function handleSavePlan(e) { e.preventDefault(); const formData = new FormData(e.target); const planData = Object.fromEntries(formData.entries()); try { await setDoc(doc(db, 'artifacts', appId, 'users', userId, 'plan', 'mainPlan'), planData, { merge: true }); alert("Rencana berhasil disimpan!"); } catch (error) { console.error("Error saving plan:", error); alert("Gagal menyimpan rencana."); } }
-        async function handleSaveProfile(e) { e.preventDefault(); const formData = new FormData(e.target); const profileData = Object.fromEntries(formData.entries()); try { await setDoc(doc(db, 'artifacts', appId, 'users', userId, 'profile', 'mainProfile'), profileData, { merge: true }); alert("Profil berhasil disimpan!"); } catch (error) { console.error("Error saving profile:", error); alert("Gagal menyimpan profil."); } }
 
-        // --- Initialization ---
-        function initApp() {
-            const themeToggle = document.getElementById('theme-toggle');
-            const setTheme = (isDark) => {
-                themeToggle.innerHTML = `<i data-lucide="${isDark ? 'sun' : 'moon'}" class="w-5 h-5"></i><span class="hidden lg:block ml-4">Ganti Tema</span>`;
-                lucide.createIcons();
+            const data = {
+                labels: ['Total Profit', 'Total Loss'],
+                datasets: [{
+                    data: [profit, loss],
+                    backgroundColor: ['#34D399', '#EF4444'], // Green-400, Red-500
+                    hoverOffset: 8
+                }]
             };
-            themeToggle.addEventListener('click', () => {
-                document.documentElement.classList.toggle('dark');
-                const isDark = document.documentElement.classList.contains('dark');
-                setTheme(isDark);
-                if (views.calendar.classList.contains('active')) renderCalendar();
-                if (views.news.classList.contains('active')) renderNews();
-            });
-            setTheme(document.documentElement.classList.contains('dark'));
-            navMenu.addEventListener('click', handleNavigation);
-            mainContent.addEventListener('click', handleDeleteTrade);
-        }
 
-        // --- Firebase Auth and Data Loading ---
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                userId = user.uid;
-                userIdDisplay.textContent = `ID: ${userId}`;
-                const tradesRef = collection(db, 'artifacts', appId, 'users', userId, 'trades');
-                onSnapshot(query(tradesRef), (snapshot) => { trades = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })); if (views.dashboard.classList.contains('active')) renderDashboard(); if (views.journal.classList.contains('active')) renderJournalTable(); });
-                const planRef = doc(db, 'artifacts', appId, 'users', userId, 'plan', 'mainPlan');
-                onSnapshot(planRef, (doc) => { plan = doc.exists() ? doc.data() : { monthlyTarget: 2000 }; if (views.dashboard.classList.contains('active')) renderDashboard(); if (views.plan.classList.contains('active')) renderPlan(); });
-                const profileRef = doc(db, 'artifacts', appId, 'users', userId, 'profile', 'mainProfile');
-                onSnapshot(profileRef, (doc) => { profile = doc.exists() ? doc.data() : { name: 'Trader' }; profileNameDisplay.textContent = profile.name; if (views.profile.classList.contains('active')) renderProfile(); });
-                loadingView.style.display = 'none';
-                views.dashboard.classList.add('active');
-                renderDashboard();
-                lucide.createIcons();
+            donutChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: {
+                                    size: 14,
+                                    family: 'Inter'
+                                },
+                                color: '#374151',
+                                generateLabels: function(chart) {
+                                    const data = chart.data;
+                                    if (data.labels.length && data.datasets.length) {
+                                        return data.labels.map(function(label, i) {
+                                            const meta = chart.getDatasetMeta(0);
+                                            const ds = data.datasets[0];
+                                            const value = ds.data[i];
+                                            const total = ds.data.reduce((sum, val) => sum + val, 0);
+                                            const percentage = total > 0 ? ((value / total) * 100).toFixed(2) + '%' : '0%';
+                                            return {
+                                                text: `${label}: ${formatRupiah(value)} (${percentage})`,
+                                                fillStyle: ds.backgroundColor[i],
+                                                strokeStyle: ds.borderColor ? ds.borderColor[i] : ds.backgroundColor[i],
+                                                lineWidth: 1,
+                                                hidden: isNaN(ds.data[i]) || meta.data[i].hidden,
+                                                index: i
+                                            };
+                                        });
+                                    }
+                                    return [];
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed;
+                                    const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
+                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(2) + '%' : '0%';
+                                    return `${label}: ${formatRupiah(value)} (${percentage})`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        };
+
+        const renderTradingCalculator = () => {
+            const calculatorSection = document.getElementById('calculator-section');
+            calculatorSection.innerHTML = `
+                <div class="bg-white p-6 rounded-xl shadow-custom mb-6">
+                    <h2 class="text-2xl font-bold mb-6 text-gray-800">Kalkulator Trading</h2>
+                    <div class="space-y-5">
+                        <div>
+                            <label for="entryPrice" class="block text-sm font-medium text-gray-700 mb-2">Harga Masuk (Rp)</label>
+                            <input type="number" id="entryPrice" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-purple-300 focus:border-purple-300" placeholder="Contoh: 1000">
+                        </div>
+                        <div>
+                            <label for="exitPrice" class="block text-sm font-medium text-gray-700 mb-2">Harga Keluar (Rp)</label>
+                            <input type="number" id="exitPrice" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-purple-300 focus:border-purple-300" placeholder="Contoh: 1100">
+                        </div>
+                        <div>
+                            <label for="quantity" class="block text-sm font-medium text-gray-700 mb-2">Kuantitas</label>
+                            <input type="number" id="quantity" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-purple-300 focus:border-purple-300" placeholder="Contoh: 100">
+                        </div>
+                        <button id="calculate-button" class="w-full bg-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 transition-all duration-200 shadow-md">
+                            Hitung Profit/Loss
+                        </button>
+                        <div id="calculator-result" class="mt-4 p-4 bg-purple-50 text-purple-700 rounded-lg font-medium text-center hidden"></div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('calculate-button').addEventListener('click', () => {
+                const entryPrice = parseFloat(document.getElementById('entryPrice').value);
+                const exitPrice = parseFloat(document.getElementById('exitPrice').value);
+                const quantity = parseFloat(document.getElementById('quantity').value);
+                const resultDiv = document.getElementById('calculator-result');
+
+                if (isNaN(entryPrice) || isNaN(exitPrice) || isNaN(quantity) || quantity <= 0) {
+                    resultDiv.innerText = 'Mohon masukkan angka yang valid.';
+                    resultDiv.classList.remove('hidden');
+                    return;
+                }
+
+                const pl = (exitPrice - entryPrice) * quantity;
+                resultDiv.innerText = `Profit/Loss: ${formatRupiah(pl)}`;
+                resultDiv.classList.remove('hidden');
+            });
+        };
+
+        const renderDailyTargetScorecard = () => {
+            const dailyTargetSection = document.getElementById('dailyTarget-section');
+            const today = formatDate(new Date());
+            const currentDayRecord = dailyRecords[today] || { target: 0, profitLoss: 0 };
+
+            // Calculate current month's profit/loss
+            const currentMonth = new Date().getMonth();
+            const currentYear = new Date().getFullYear();
+            let currentMonthProfitLoss = 0;
+            for (const date in dailyRecords) {
+                const recordDate = new Date(date);
+                if (recordDate.getMonth() === currentMonth && recordDate.getFullYear() === currentYear) {
+                    currentMonthProfitLoss += dailyRecords[date].profitLoss || 0;
+                }
+            }
+
+            const monthlyProgress = monthlyTarget > 0 ? (currentMonthProfitLoss / monthlyTarget) * 100 : 0;
+            const progressBarValue = Math.max(0, Math.min(100, monthlyProgress)); // Ensure value is between 0 and 100
+
+            dailyTargetSection.innerHTML = `
+                <div class="bg-white p-6 rounded-xl shadow-custom mb-6">
+                    <h2 class="text-2xl font-bold mb-6 text-gray-800">Kartu Skor Target Harian & Bulanan</h2>
+                    
+                    <div class="bg-gray-50 p-6 rounded-lg shadow-sm mb-8 border border-gray-100">
+                        <h3 class="text-xl font-semibold mb-4 text-gray-800">Set Target Harian</h3>
+                        <div class="flex flex-col sm:flex-row gap-3 mb-4">
+                            <input type="date" id="targetDateInput" class="flex-grow p-3 border border-gray-300 rounded-lg focus:ring-purple-300 focus:border-purple-300" value="${today}">
+                            <input type="number" id="dailyTargetInput" class="flex-grow p-3 border border-gray-300 rounded-lg focus:ring-purple-300 focus:border-purple-300" placeholder="Target Rp" value="${currentDayRecord.target}">
+                            <button id="setDailyTargetButton" class="bg-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 transition-all duration-200 shadow-md">
+                                Set Target
+                            </button>
+                        </div>
+                        <div class="bg-yellow-50 p-4 rounded-lg shadow-sm text-center border border-yellow-100">
+                            <span class="text-sm text-gray-600 font-medium">Target Harian untuk ${today}:</span>
+                            <span class="block text-2xl font-bold text-yellow-700 mt-1">${formatRupiah(currentDayRecord.target)}</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 p-6 rounded-lg shadow-sm mb-8 border border-gray-100">
+                        <h3 class="text-xl font-semibold mb-4 text-gray-800">Progres Target Bulanan</h3>
+                        <div class="flex flex-col sm:flex-row gap-3 mb-4">
+                            <input type="number" id="monthlyTargetInput" class="flex-grow p-3 border border-gray-300 rounded-lg focus:ring-purple-300 focus:border-purple-300" placeholder="Target Bulanan Rp" value="${monthlyTarget}">
+                            <button id="setMonthlyTargetButton" class="bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-all duration-200 shadow-md">
+                                Set Bulanan
+                            </button>
+                        </div>
+                        <div class="mb-4 text-center">
+                            <span class="text-sm text-gray-600 font-medium">Target Bulanan: ${formatRupiah(monthlyTarget)}</span><br>
+                            <span class="text-lg font-bold text-purple-700">Progres: ${formatRupiah(currentMonthProfitLoss)}</span>
+                        </div>
+                        <progress value="${progressBarValue}" max="100"></progress>
+                        <div class="text-center text-sm text-gray-600 mt-2">${progressBarValue.toFixed(2)}% Tercapai</div>
+                    </div>
+
+                    <div class="bg-gray-50 p-6 rounded-lg shadow-sm mb-8 border border-gray-100">
+                        <h3 class="text-xl font-semibold mb-4 text-gray-800">Skor Harian</h3>
+                        <div class="flex flex-col sm:flex-row gap-3 mb-4">
+                            <input type="number" id="addScoreInput" class="flex-grow p-3 border border-gray-300 rounded-lg focus:ring-purple-300 focus:border-purple-300" placeholder="Tambah Profit/Loss Rp">
+                            <button id="addScoreButton" class="bg-green-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-green-700 transition-all duration-200 shadow-md">
+                                Tambah Skor
+                            </button>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg shadow-sm text-center border border-green-100">
+                            <span class="text-sm text-gray-600 font-medium">Profit/Loss Hari Ini:</span>
+                            <span class="block text-3xl font-extrabold text-green-700 mt-1">${formatRupiah(currentDayRecord.profitLoss)}</span>
+                        </div>
+                        <button id="resetScoreButton" class="w-full bg-gray-500 text-white py-3 px-6 rounded-lg font-semibold hover:bg-gray-600 transition-all duration-200 shadow-md mt-4">
+                            Reset Skor Harian
+                        </button>
+                    </div>
+
+                    <h3 class="text-xl font-semibold mb-4 text-gray-800">Target & Progres Harian Sebelumnya</h3>
+                    <div id="daily-records-table" class="overflow-x-auto rounded-lg shadow-sm border border-gray-200">
+                        <!-- Daily records table will be rendered here -->
+                    </div>
+                </div>
+            `;
+
+            // Event Listeners
+            document.getElementById('setDailyTargetButton').addEventListener('click', () => {
+                const targetDate = document.getElementById('targetDateInput').value;
+                const newTarget = parseFloat(document.getElementById('dailyTargetInput').value);
+                if (!isNaN(newTarget) && newTarget >= 0) {
+                    updateDailyRecord(targetDate, newTarget, dailyRecords[targetDate]?.profitLoss || 0);
+                    showNotificationModal(`Target harian untuk ${targetDate} disetel ke ${formatRupiah(newTarget)}.`);
+                } else {
+                    showNotificationModal('Mohon masukkan target harian yang valid dan positif.');
+                }
+            });
+
+            document.getElementById('setMonthlyTargetButton').addEventListener('click', () => {
+                const newMonthlyTarget = parseFloat(document.getElementById('monthlyTargetInput').value);
+                if (!isNaN(newMonthlyTarget) && newMonthlyTarget >= 0) {
+                    monthlyTarget = newMonthlyTarget;
+                    updateUserSummary();
+                    showNotificationModal(`Target bulanan disetel ke ${formatRupiah(newMonthlyTarget)}.`);
+                } else {
+                    showNotificationModal('Mohon masukkan target bulanan yang valid dan positif.');
+                }
+            });
+
+            document.getElementById('addScoreInput').addEventListener('change', (event) => {
+                // This input is now mainly for manual adjustment, journal entries update profitLoss automatically
+                // However, if user wants to manually add to current day's PL, this is where
+                const scoreToAdd = parseFloat(event.target.value);
+                if (!isNaN(scoreToAdd)) {
+                    const currentPL = dailyRecords[today]?.profitLoss || 0;
+                    updateDailyRecord(today, dailyRecords[today]?.target || 0, currentPL + scoreToAdd);
+                    event.target.value = ''; // Clear input
+                    showNotificationModal(`Profit/Loss hari ini diperbarui.`);
+                } else {
+                    showNotificationModal('Skor yang dimasukkan harus angka.');
+                }
+            });
+
+            document.getElementById('resetScoreButton').addEventListener('click', () => {
+                updateDailyRecord(today, dailyRecords[today]?.target || 0, 0);
+                showNotificationModal('Skor harian direset.');
+            });
+
+            // Update daily records table
+            const updateDailyRecordsTable = () => {
+                const dailyRecordsTable = document.getElementById('daily-records-table');
+                const sortedDailyRecords = Object.entries(dailyRecords)
+                    .sort(([dateA], [dateB]) => new Date(dateB) - new Date(dateA)); // Sort descending by date
+
+                if (sortedDailyRecords.length === 0) {
+                    dailyRecordsTable.innerHTML = '<p class="text-center text-gray-600 p-6">Belum ada catatan harian.</p>';
+                    return;
+                }
+
+                let tableHtml = `
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tanggal</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Target</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Profit/Loss Harian</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-100">
+                `;
+                sortedDailyRecords.forEach(([date, record]) => {
+                    const status = (record.profitLoss || 0) >= (record.target || 0) && (record.target || 0) > 0 ? 'Tercapai' : 'Belum Tercapai';
+                    const statusClass = status === 'Tercapai' ? 'text-green-600 font-semibold' : 'text-red-600';
+                    tableHtml += `
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800">${date}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800">${formatRupiah(record.target || 0)}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800">${formatRupiah(record.profitLoss || 0)}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm ${statusClass}">${status}</td>
+                        </tr>
+                    `;
+                });
+                tableHtml += `</tbody></table>`;
+                dailyRecordsTable.innerHTML = tableHtml;
+            };
+            updateDailyRecordsTable();
+        };
+
+        const renderTradingJournal = () => {
+            const journalSection = document.getElementById('journal-section');
+            journalSection.innerHTML = `
+                <div class="bg-white p-6 rounded-xl shadow-custom mb-6">
+                    <h2 class="text-2xl font-bold mb-6 text-gray-800">Jurnal Trading</h2>
+
+                    <div class="space-y-5 mb-8 p-6 border border-gray-200 rounded-lg bg-gray-50">
+                        <h3 class="text-xl font-semibold text-gray-800">Tambah Entri Baru</h3>
+                        <div>
+                            <label for="journalDate" class="block text-sm font-medium text-gray-700 mb-2">Tanggal</label>
+                            <input type="date" id="journalDate" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-purple-300 focus:border-purple-300" value="${formatDate(new Date())}">
+                        </div>
+                        <div>
+                            <label for="journalType" class="block text-sm font-medium text-gray-700 mb-2">Tipe</label>
+                            <select id="journalType" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-purple-300 focus:border-purple-300">
+                                <option value="profit">Profit</option>
+                                <option value="loss">Loss</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="journalAmount" class="block text-sm font-medium text-gray-700 mb-2">Jumlah (Rp)</label>
+                            <input type="number" id="journalAmount" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-purple-300 focus:border-purple-300" placeholder="Contoh: 50000">
+                        </div>
+                        <div>
+                            <label for="journalNotes" class="block text-sm font-medium text-gray-700 mb-2">Catatan</label>
+                            <textarea id="journalNotes" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-purple-300 focus:border-purple-300" rows="3" placeholder="Catatan trading Anda..."></textarea>
+                        </div>
+                        <button id="addEntryButton" class="w-full bg-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 transition-all duration-200 shadow-md">
+                            Tambah Entri
+                        </button>
+                    </div>
+
+                    <h3 class="text-xl font-semibold mb-4 text-gray-800">Daftar Entri</h3>
+                    <div id="journal-entries-list" class="overflow-x-auto rounded-lg shadow-sm border border-gray-200">
+                        <!-- Journal entries table will be rendered here -->
+                    </div>
+                </div>
+            `;
+
+            const updateJournalTable = () => {
+                const journalEntriesList = document.getElementById('journal-entries-list');
+                if (journalEntries.length === 0) {
+                    journalEntriesList.innerHTML = '<p class="text-center text-gray-600 p-6">Belum ada entri jurnal.</p>';
+                    return;
+                }
+
+                let tableHtml = `
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tanggal</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tipe</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Jumlah</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Catatan</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-100">
+                `;
+                journalEntries.forEach(entry => {
+                    const typeClass = entry.type === 'profit' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+                    tableHtml += `
+                        <tr data-id="${entry.id}" class="hover:bg-gray-50">
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800">${entry.date}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm font-medium">
+                                <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${typeClass}">
+                                    ${entry.type === 'profit' ? 'Profit' : 'Loss'}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800">${formatRupiah(entry.amount)}</td>
+                            <td class="px-4 py-3 text-sm text-gray-800 max-w-xs overflow-hidden text-ellipsis">${entry.notes}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm font-medium">
+                                <button class="text-red-600 hover:text-red-800 transition-colors duration-200 delete-entry-button" data-id="${entry.id}">
+                                    Hapus
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                tableHtml += `</tbody></table>`;
+                journalEntriesList.innerHTML = tableHtml;
+
+                // Attach delete event listeners
+                document.querySelectorAll('.delete-entry-button').forEach(button => {
+                    button.addEventListener('click', (event) => {
+                        const id = event.target.dataset.id;
+                        deleteJournalEntry(id);
+                    });
+                });
+            };
+
+            updateJournalTable();
+
+            document.getElementById('addEntryButton').addEventListener('click', async () => {
+                const date = document.getElementById('journalDate').value;
+                const type = document.getElementById('journalType').value;
+                const amount = parseFloat(document.getElementById('journalAmount').value);
+                const notes = document.getElementById('journalNotes').value;
+
+                if (!date || isNaN(amount)) {
+                    showNotificationModal('Tanggal dan jumlah harus diisi dengan benar.');
+                    return;
+                }
+                await addJournalEntry({ date, type, amount, notes });
+                document.getElementById('journalAmount').value = '';
+                document.getElementById('journalNotes').value = '';
+                // The onSnapshot listener will re-render the table
+            });
+        };
+
+        const renderEconomicCalendar = () => {
+            const calendarSection = document.getElementById('calendar-section');
+            const economicEvents = [
+                { date: '2025-08-01', time: '08:00 WIB', event: 'Pengumuman Inflasi Indonesia', impact: 'Tinggi' },
+                { date: '2025-08-05', time: '14:30 WIB', event: 'Data Manufaktur PMI AS', impact: 'Sedang' },
+                { date: '2025-08-10', time: '10:00 WIB', event: 'Keputusan Suku Bunga Bank Sentral Eropa', impact: 'Tinggi' },
+                { date: '2025-08-15', time: '19:00 WIB', event: 'Penjualan Ritel Inggris', impact: 'Rendah' },
+                { date: '2025-08-20', time: '11:00 WIB', event: 'Laporan Ketenagakerjaan Jepang', impact: 'Sedang' },
+            ];
+
+            let eventsHtml = '';
+            if (economicEvents.length === 0) {
+                eventsHtml = '<p class="text-center text-gray-600">Tidak ada event ekonomi yang akan datang.</p>';
             } else {
-                signInAnonymously(auth).catch(error => console.error("Anonymous sign-in failed:", error));
+                economicEvents.forEach((event, index) => {
+                    eventsHtml += `
+                        <div class="bg-blue-50 p-4 rounded-lg shadow-sm border border-blue-100 flex items-center space-x-4">
+                            <div class="text-center">
+                                <p class="text-lg font-bold text-blue-800">${event.date.substring(8,10)}</p>
+                                <p class="text-xs text-gray-600">${new Date(event.date).toLocaleString('id-ID', { month: 'short' })}</p>
+                            </div>
+                            <div class="flex-grow">
+                                <p class="text-sm font-semibold text-blue-800">${event.time}</p>
+                                <p class="text-md text-gray-800">${event.event}</p>
+                                <p class="text-xs text-gray-600">Dampak: <span class="font-medium">${event.impact}</span></p>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            calendarSection.innerHTML = `
+                <div class="bg-white p-6 rounded-xl shadow-custom mb-6">
+                    <h2 class="text-2xl font-bold mb-6 text-gray-800">Kalender Ekonomi</h2>
+                    <div class="bg-red-50 p-5 rounded-lg shadow-sm border border-red-200 mb-8">
+                        <p class="text-sm text-red-700 font-semibold mb-3">
+                            **PENTING: Mengambil data langsung dari Investing.com (atau situs serupa) dari browser akan menghadapi masalah CORS (Cross-Origin Resource Sharing).**
+                            Ini berarti browser memblokir permintaan ke domain lain untuk alasan keamanan.
+                        </p>
+                        <p class="text-sm text-red-700 mb-3">
+                            Untuk mendapatkan data kalender ekonomi real-time dari Investing.com (atau sumber eksternal lainnya), Anda biasanya memerlukan salah satu solusi berikut:
+                        </p>
+                        <ul class="list-disc list-inside text-sm text-red-700 ml-4 space-y-1">
+                            <li>**Menggunakan API Resmi:** Jika Investing.com atau penyedia data finansial lainnya menawarkan API resmi (Application Programming Interface), ini adalah cara terbaik. Anda akan mendaftar untuk mendapatkan kunci API dan menggunakannya untuk mengambil data secara terstruktur. API ini biasanya sudah dikonfigurasi untuk mengatasi masalah CORS.</li>
+                            <li>**Server Proxy (Backend):** Anda dapat membuat server backend sederhana (misalnya, menggunakan Node.js, Python, PHP) yang bertindak sebagai "perantara". Server ini akan membuat permintaan ke Investing.com (dari sisi server, CORS tidak berlaku) dan kemudian meneruskan data tersebut ke aplikasi frontend Anda. Ini adalah solusi umum jika tidak ada API resmi.</li>
+                        </ul>
+                        <p class="text-sm text-red-700 mt-3">
+                            Karena kendala keamanan browser dan lingkungan Canvas, aplikasi ini tidak dapat secara langsung mengambil data dari Investing.com. Data di bawah ini adalah **simulasi**.
+                        </p>
+                    </div>
+                    <div class="space-y-4">
+                        ${eventsHtml}
+                    </div>
+                </div>
+            `;
+        };
+
+        // --- Firebase & Data Logic ---
+
+        // Function to update the main user summary data (saldo, profit, loss, monthlyTarget, dailyRecords)
+        const updateUserSummary = async () => {
+            if (!db || !userId) return;
+            const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/trading_data`, 'user_data');
+            try {
+                await setDoc(userDocRef, {
+                    saldo: saldo,
+                    profit: profit,
+                    loss: loss,
+                    monthlyTarget: monthlyTarget,
+                    dailyRecords: dailyRecords // Save the entire dailyRecords map
+                }, { merge: true });
+            } catch (e) {
+                console.error("Error updating user data:", e);
+            }
+        };
+
+        // Function to update a specific daily record
+        const updateDailyRecord = async (date, target, profitLoss) => {
+            if (!db || !userId) return;
+            dailyRecords = {
+                ...dailyRecords,
+                [date]: {
+                    target: target,
+                    profitLoss: profitLoss
+                }
+            };
+            await updateUserSummary(); // Save the updated dailyRecords map to Firestore
+        };
+
+        const addJournalEntry = async (entry) => {
+            if (!db || !userId) return;
+            try {
+                const journalCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/trading_data/journal_entries`);
+                const newDocRef = doc(journalCollectionRef); // Get a new document reference with an auto-generated ID
+                await setDoc(newDocRef, entry);
+
+                // Update local state and derived values
+                if (entry.type === 'profit') {
+                    saldo += entry.amount;
+                    profit += entry.amount;
+                } else {
+                    saldo -= entry.amount;
+                    loss += entry.amount;
+                }
+
+                // Update daily profit/loss for the entry's date
+                const entryDate = entry.date;
+                const currentDailyPL = dailyRecords[entryDate]?.profitLoss || 0;
+                const newDailyPL = entry.type === 'profit' ? currentDailyPL + entry.amount : currentDailyPL - entry.amount;
+                
+                // Ensure daily target exists, if not, initialize it to 0
+                const currentDailyTarget = dailyRecords[entryDate]?.target || 0;
+
+                await updateDailyRecord(entryDate, currentDailyTarget, newDailyPL); // Update daily record
+                await updateUserSummary(); // Persist changes to Firestore
+                // onSnapshot will handle re-rendering the journal table and daily target scorecard
+            } catch (e) {
+                console.error("Error adding document: ", e);
+            }
+        };
+
+        const deleteJournalEntry = async (id) => {
+            if (!db || !userId) return;
+            try {
+                const journalEntryRef = doc(db, `artifacts/${appId}/users/${userId}/trading_data/journal_entries`, id);
+                const entryToDelete = journalEntries.find(entry => entry.id === id);
+
+                if (entryToDelete) {
+                    // Revert saldo, profit, loss before deleting
+                    if (entryToDelete.type === 'profit') {
+                        saldo -= entryToDelete.amount;
+                        profit -= entryToDelete.amount;
+                    } else {
+                        saldo += entryToDelete.amount;
+                        loss -= entryToDelete.amount;
+                    }
+
+                    // Revert daily profit/loss for the entry's date
+                    const entryDate = entryToDelete.date;
+                    const currentDailyPL = dailyRecords[entryDate]?.profitLoss || 0;
+                    const newDailyPL = entryToDelete.type === 'profit' ? currentDailyPL - entryToDelete.amount : currentDailyPL + entryToDelete.amount;
+                    
+                    const currentDailyTarget = dailyRecords[entryDate]?.target || 0;
+                    await updateDailyRecord(entryDate, currentDailyTarget, newDailyPL); // Update daily record
+                }
+                await deleteDoc(journalEntryRef);
+                await updateUserSummary(); // Persist changes to Firestore
+                // onSnapshot will handle re-rendering the journal table and daily target scorecard
+            } catch (e) {
+                console.error("Error deleting document: ", e);
+            }
+        };
+
+        // --- Main Application Logic ---
+
+        // Centralized function to set up Firestore listeners after successful authentication
+        const setupFirestoreListeners = () => {
+            if (!db || !userId) {
+                console.warn("Firestore listeners cannot be set up: DB or userId is missing.");
+                return;
+            }
+
+            const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/trading_data`, 'user_data');
+            const journalCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/trading_data/journal_entries`);
+
+            onSnapshot(userDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    saldo = data.saldo || 0;
+                    profit = data.profit || 0;
+                    loss = data.loss || 0;
+                    monthlyTarget = data.monthlyTarget || 0;
+                    dailyRecords = data.dailyRecords || {}; // Load daily records map
+                } else {
+                    // Initialize if document doesn't exist
+                    setDoc(userDocRef, {
+                        saldo: 0,
+                        profit: 0,
+                        loss: 0,
+                        monthlyTarget: 0,
+                        dailyRecords: {}
+                    }, { merge: true }).catch(console.error);
+                }
+                // Re-render the active section to reflect updated data
+                showSection(activeTab + '-section');
+            }, (error) => {
+                console.error("Error listening to user data:", error);
+            });
+
+            onSnapshot(journalCollectionRef, (snapshot) => {
+                const entries = [];
+                snapshot.forEach(doc => {
+                    entries.push({ id: doc.id, ...doc.data() });
+                });
+                // Sort entries by date descending
+                entries.sort((a, b) => new Date(b.date) - new Date(a.date));
+                journalEntries = entries;
+                // Re-render the active section to reflect updated data
+                if (activeTab === 'journal' || activeTab === 'dashboard' || activeTab === 'dailyTarget') {
+                    showSection(activeTab + '-section');
+                }
+            }, (error) => {
+                console.error("Error listening to journal entries:", error);
+            });
+        };
+
+        const showSection = (sectionId) => {
+            const sections = ['dashboard-section', 'calculator-section', 'dailyTarget-section', 'journal-section', 'calendar-section'];
+            sections.forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(sectionId).classList.remove('hidden');
+
+            // Update active navigation button style
+            document.querySelectorAll('.nav-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            document.getElementById(`nav-${sectionId.replace('-section', '')}`).classList.add('active');
+
+            // Render content for the active section
+            switch (sectionId) {
+                case 'dashboard-section':
+                    renderDashboard();
+                    break;
+                case 'calculator-section':
+                    renderTradingCalculator();
+                    break;
+                case 'dailyTarget-section':
+                    renderDailyTargetScorecard();
+                    break;
+                case 'journal-section':
+                    renderTradingJournal();
+                    break;
+                case 'calendar-section':
+                    renderEconomicCalendar();
+                    break;
+            }
+        };
+
+        // Auth state
+        let isLoginMode = true; // true for login, false for register
+
+        // Get auth elements
+        const authSection = document.getElementById('auth-section');
+        const mainAppContent = document.getElementById('main-app-content');
+        const authTitle = document.getElementById('auth-title');
+        const authEmailInput = document.getElementById('auth-email');
+        const authPasswordInput = document.getElementById('auth-password');
+        const authErrorMessage = document.getElementById('auth-error-message');
+        const authSubmitButton = document.getElementById('auth-submit-button');
+        const authToggleButton = document.getElementById('auth-toggle-button');
+        const logoutButtonContainer = document.getElementById('logout-button-container');
+
+
+        // Function to update auth UI
+        const updateAuthUI = () => {
+            authTitle.innerText = isLoginMode ? 'Login' : 'Daftar';
+            authSubmitButton.innerText = isLoginMode ? 'Login' : 'Daftar';
+            authToggleButton.innerText = isLoginMode ? 'Belum punya akun? Daftar di sini.' : 'Sudah punya akun? Login di sini.';
+            authErrorMessage.classList.add('hidden'); // Clear previous errors
+        };
+
+        // Handle auth submit
+        authSubmitButton.addEventListener('click', async () => {
+            const email = authEmailInput.value;
+            const password = authPasswordInput.value;
+            authErrorMessage.classList.add('hidden'); // Hide previous errors
+            authSubmitButton.disabled = true; // Disable button during processing
+
+            try {
+                if (isLoginMode) {
+                    await signInWithEmailAndPassword(auth, email, password);
+                } else {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                }
+                // onAuthStateChanged will handle UI update on success
+            } catch (error) {
+                let message = 'Terjadi kesalahan. Silakan coba lagi.';
+                if (error.code === 'auth/weak-password') {
+                    message = 'Kata sandi terlalu lemah. Minimal 6 karakter.';
+                } else if (error.code === 'auth/email-already-in-use') {
+                    message = 'Email ini sudah terdaftar.';
+                } else if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                    message = 'Email atau kata sandi salah.';
+                } else if (error.code === 'auth/invalid-email') {
+                    message = 'Format email tidak valid.';
+                }
+                authErrorMessage.innerText = message;
+                authErrorMessage.classList.remove('hidden');
+                console.error("Auth error:", error);
+            } finally {
+                authSubmitButton.disabled = false; // Re-enable button
             }
         });
 
-        initApp();
+        // Handle auth toggle
+        authToggleButton.addEventListener('click', () => {
+            isLoginMode = !isLoginMode;
+            updateAuthUI();
+        });
+
+        // Initial UI setup for auth
+        updateAuthUI();
+
+        // Initialize Firebase and set up listeners
+        window.onload = async () => {
+            const app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+
+            document.getElementById('modal-close-button').addEventListener('click', hideNotificationModal);
+
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    isAuthReady = true;
+                    authSection.classList.add('hidden');
+                    mainAppContent.classList.remove('hidden');
+                    document.getElementById('loading-spinner').classList.add('hidden'); // Hide loading spinner if it's still there
+                    showSection(activeTab + '-section'); // Show initial tab
+                    setupFirestoreListeners(); // Set up Firestore listeners
+                    
+                    // Show logout button
+                    if (logoutButtonContainer) {
+                        logoutButtonContainer.innerHTML = `
+                            <button id="logout-button" class="bg-red-500 text-white py-2 px-4 rounded-lg font-semibold hover:bg-red-600 transition-all duration-200 shadow-md">
+                                Logout
+                            </button>
+                        `;
+                        document.getElementById('logout-button').addEventListener('click', async () => {
+                            try {
+                                await signOut(auth); // Use signOut from firebase/auth
+                                // onAuthStateChanged will handle UI update
+                            } catch (error) {
+                                console.error("Error logging out:", error);
+                                showNotificationModal('Gagal logout. Silakan coba lagi.');
+                            }
+                        });
+                    }
+                } else {
+                    // User is logged out or not authenticated
+                    userId = null; // Clear userId
+                    isAuthReady = false;
+                    authSection.classList.remove('hidden');
+                    mainAppContent.classList.add('hidden');
+                    document.getElementById('loading-spinner').classList.add('hidden'); // Hide loading spinner
+                    
+                    // Hide logout button
+                    if (logoutButtonContainer) {
+                        logoutButtonContainer.innerHTML = '';
+                    }
+
+                    // Attempt anonymous sign-in if no user and no custom token provided initially
+                    // This is a fallback to allow the app to function if no explicit login is done.
+                    // If you want strictly email/password, remove this anonymous sign-in block.
+                    if (!initialAuthToken) { // Only try anonymous if no custom token was meant to be used
+                        try {
+                            await signInAnonymously(auth);
+                            // onAuthStateChanged will fire again with the new anonymous user
+                        } catch (anonError) {
+                            console.error("Error signing in anonymously:", anonError);
+                            // If even anonymous sign-in fails, create a temporary user ID
+                            userId = crypto.randomUUID(); // Fallback to a random UUID if all else fails
+                            showNotificationModal('Gagal masuk ke Firebase. Data mungkin tidak disimpan atau dimuat. Coba lagi nanti.');
+                            isAuthReady = true; // Mark as ready even if anonymous failed, to show UI
+                            document.getElementById('loading-spinner').classList.add('hidden');
+                            showSection(activeTab + '-section');
+                            setupFirestoreListeners(); // Try to setup listeners with fallback userId
+                        }
+                    }
+                }
+            });
+
+            // Attach navigation button listeners (these are inside mainAppContent, so they'll be active when visible)
+            // These listeners need to be attached only once, outside of onAuthStateChanged,
+            // or ensure they are idempotent. For simplicity, they are here.
+            document.getElementById('nav-dashboard').addEventListener('click', () => showSection('dashboard-section'));
+            document.getElementById('nav-calculator').addEventListener('click', () => showSection('calculator-section'));
+            document.getElementById('nav-dailyTarget').addEventListener('click', () => showSection('dailyTarget-section'));
+            document.getElementById('nav-journal').addEventListener('click', () => showSection('journal-section'));
+            document.getElementById('nav-calendar').addEventListener('click', () => showSection('calendar-section'));
+        };
     </script>
-    <!-- TradingView Widget Script -->
-    <script type="text/javascript" src="https://s3.tradingview.com/tv.js" async></script>
 </body>
 </html>
