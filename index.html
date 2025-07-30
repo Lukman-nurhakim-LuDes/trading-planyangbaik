@@ -225,7 +225,8 @@
             <div id="dailyTarget-section" class="hidden"></div>
             <div id="journal-section" class="hidden"></div>
             <div id="calendar-section" class="hidden"></div>
-            <div id="strategy-section" class="hidden"></div> <!-- New Strategy Section -->
+            <div id="strategy-section" class="hidden"></div>
+            <div id="portfolio-section" class="hidden"></div> <!-- New Portfolio Section -->
         </div>
 
         <!-- Bottom Navigation -->
@@ -249,6 +250,10 @@
             <button id="nav-strategy" class="nav-button flex flex-col items-center p-2 rounded-lg transition-colors duration-200 text-gray-700 hover:bg-purple-100">
                 <span class="text-2xl">💡</span>
                 <span class="text-xs font-medium mt-1">Strategi</span>
+            </button>
+            <button id="nav-portfolio" class="nav-button flex flex-col items-center p-2 rounded-lg transition-colors duration-200 text-gray-700 hover:bg-purple-100">
+                <span class="text-2xl">💼</span>
+                <span class="text-xs font-medium mt-1">Portofolio</span>
             </button>
             <button id="nav-calendar" class="nav-button flex flex-col items-center p-2 rounded-lg transition-colors duration-200 text-gray-700 hover:bg-purple-100">
                 <span class="text-2xl">🗓️</span>
@@ -320,7 +325,8 @@
         let journalEntries = [];
         let activeTab = 'dashboard';
         let dailyRecords = {}; // Stores { date: { target: amount, profitLoss: amount } }
-        let strategies = []; // New state variable for strategies
+        let strategies = []; // State variable for strategies
+        let portfolioAssets = []; // New state variable for portfolio assets
 
         // Chart.js instance for donut chart
         let donutChart = null;
@@ -624,7 +630,7 @@
             const updateDailyRecordsTable = () => {
                 const dailyRecordsTable = document.getElementById('daily-records-table');
                 const sortedDailyRecords = Object.entries(dailyRecords)
-                    .sort(([dateA], [dateB]) => new Date(b.date) - new Date(a.date)); // Sort descending by date
+                    .sort(([dateA], [dateB]) => new Date(dateB) - new Date(dateA)); // Sort descending by date
 
                 if (sortedDailyRecords.length === 0) {
                     dailyRecordsTable.innerHTML = '<p class="text-center text-gray-600 p-6">Belum ada catatan harian.</p>';
@@ -1029,6 +1035,170 @@
             });
         };
 
+        const renderPortfolio = () => {
+            const portfolioSection = document.getElementById('portfolio-section');
+            portfolioSection.innerHTML = `
+                <div class="bg-white p-6 rounded-xl shadow-custom mb-6">
+                    <h2 class="text-2xl font-bold mb-6 text-gray-800">Manajemen Portofolio</h2>
+
+                    <div class="space-y-5 mb-8 p-6 border border-gray-200 rounded-lg bg-gray-50">
+                        <h3 id="portfolio-form-title" class="text-xl font-semibold text-gray-800">Tambah Aset Baru</h3>
+                        <div>
+                            <label for="assetName" class="block text-sm font-medium text-gray-700 mb-2">Nama Aset (Contoh: BBCA, BTC, EUR/USD)</label>
+                            <input type="text" id="assetName" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-purple-300 focus:border-purple-300" placeholder="Nama Aset">
+                        </div>
+                        <div>
+                            <label for="assetQuantity" class="block text-sm font-medium text-gray-700 mb-2">Kuantitas</label>
+                            <input type="number" id="assetQuantity" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-purple-300 focus:border-purple-300" placeholder="Contoh: 100 (lembar/unit)">
+                        </div>
+                        <div>
+                            <label for="assetBuyPrice" class="block text-sm font-medium text-gray-700 mb-2">Harga Beli Rata-rata (Rp)</label>
+                            <input type="number" id="assetBuyPrice" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-purple-300 focus:border-purple-300" placeholder="Contoh: 15000">
+                        </div>
+                        <div>
+                            <label for="assetCurrentPrice" class="block text-sm font-medium text-gray-700 mb-2">Harga Saat Ini (Rp)</label>
+                            <input type="number" id="assetCurrentPrice" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-purple-300 focus:border-purple-300" placeholder="Contoh: 15500">
+                            <p class="text-xs text-gray-600 mt-1">Isi harga saat ini secara manual. Integrasi data real-time memerlukan API eksternal.</p>
+                        </div>
+                        <button id="saveAssetButton" class="w-full bg-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 transition-all duration-200 shadow-md">
+                            Tambah Aset
+                        </button>
+                        <button id="cancelEditAssetButton" class="w-full bg-gray-500 text-white py-3 px-6 rounded-lg font-semibold hover:bg-gray-600 transition-all duration-200 shadow-md hidden">
+                            Batal Edit
+                        </button>
+                    </div>
+
+                    <h3 class="text-xl font-semibold mb-4 text-gray-800">Daftar Aset Anda</h3>
+                    <div id="portfolio-list" class="overflow-x-auto rounded-lg shadow-sm border border-gray-200">
+                        <!-- Portfolio assets table will be rendered here -->
+                    </div>
+                </div>
+            `;
+
+            // Internal state for editing
+            let editingAssetId = null;
+
+            const updatePortfolioList = () => {
+                const portfolioListDiv = document.getElementById('portfolio-list');
+                if (portfolioAssets.length === 0) {
+                    portfolioListDiv.innerHTML = '<p class="text-center text-gray-600 p-6">Belum ada aset dalam portofolio Anda.</p>';
+                    return;
+                }
+
+                let tableHtml = `
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Aset</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Kuantitas</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Harga Beli Rata-rata</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Harga Saat Ini</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Nilai Pasar</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Profit/Loss</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-100">
+                `;
+                portfolioAssets.forEach(asset => {
+                    const totalBuyValue = asset.quantity * asset.buyPrice;
+                    const marketValue = asset.quantity * asset.currentPrice;
+                    const profitLoss = marketValue - totalBuyValue;
+                    const profitLossClass = profitLoss >= 0 ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold';
+
+                    tableHtml += `
+                        <tr data-id="${asset.id}" class="hover:bg-gray-50">
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800">${asset.name}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800">${asset.quantity}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800">${formatRupiah(asset.buyPrice)}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800">${formatRupiah(asset.currentPrice)}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800">${formatRupiah(marketValue)}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm ${profitLossClass}">${formatRupiah(profitLoss)}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm font-medium">
+                                <button class="bg-blue-500 text-white py-2 px-4 rounded-lg text-sm hover:bg-blue-600 transition-colors duration-200 edit-asset-button" data-id="${asset.id}">
+                                    Edit
+                                </button>
+                                <button class="bg-red-500 text-white py-2 px-4 rounded-lg text-sm hover:bg-red-600 transition-colors duration-200 delete-asset-button" data-id="${asset.id}">
+                                    Hapus
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                tableHtml += `</tbody></table>`;
+                portfolioListDiv.innerHTML = tableHtml;
+
+                // Attach event listeners for edit and delete buttons
+                document.querySelectorAll('.edit-asset-button').forEach(button => {
+                    button.addEventListener('click', (event) => {
+                        const id = event.target.dataset.id;
+                        const assetToEdit = portfolioAssets.find(a => a.id === id);
+                        if (assetToEdit) {
+                            document.getElementById('assetName').value = assetToEdit.name;
+                            document.getElementById('assetQuantity').value = assetToEdit.quantity;
+                            document.getElementById('assetBuyPrice').value = assetToEdit.buyPrice;
+                            document.getElementById('assetCurrentPrice').value = assetToEdit.currentPrice;
+                            document.getElementById('saveAssetButton').innerText = 'Simpan Perubahan';
+                            document.getElementById('portfolio-form-title').innerText = 'Edit Aset';
+                            document.getElementById('cancelEditAssetButton').classList.remove('hidden');
+                            editingAssetId = id;
+                        }
+                    });
+                });
+
+                document.querySelectorAll('.delete-asset-button').forEach(button => {
+                    button.addEventListener('click', (event) => {
+                        const id = event.target.dataset.id;
+                        deleteAsset(id);
+                    });
+                });
+            };
+
+            updatePortfolioList(); // Initial render of the list
+
+            document.getElementById('saveAssetButton').addEventListener('click', async () => {
+                const name = document.getElementById('assetName').value;
+                const quantity = parseFloat(document.getElementById('assetQuantity').value);
+                const buyPrice = parseFloat(document.getElementById('assetBuyPrice').value);
+                const currentPrice = parseFloat(document.getElementById('assetCurrentPrice').value);
+
+                if (!name || isNaN(quantity) || isNaN(buyPrice) || isNaN(currentPrice) || quantity <= 0 || buyPrice <= 0 || currentPrice <= 0) {
+                    showNotificationModal('Mohon isi semua kolom aset dengan angka positif yang valid.');
+                    return;
+                }
+
+                if (editingAssetId) {
+                    await editAsset(editingAssetId, { name, quantity, buyPrice, currentPrice });
+                    showNotificationModal('Aset berhasil diperbarui!');
+                } else {
+                    await addAsset({ name, quantity, buyPrice, currentPrice });
+                    showNotificationModal('Aset baru berhasil ditambahkan!');
+                }
+
+                // Reset form and UI
+                document.getElementById('assetName').value = '';
+                document.getElementById('assetQuantity').value = '';
+                document.getElementById('assetBuyPrice').value = '';
+                document.getElementById('assetCurrentPrice').value = '';
+                document.getElementById('saveAssetButton').innerText = 'Tambah Aset';
+                document.getElementById('portfolio-form-title').innerText = 'Tambah Aset Baru';
+                document.getElementById('cancelEditAssetButton').classList.add('hidden');
+                editingAssetId = null;
+            });
+
+            document.getElementById('cancelEditAssetButton').addEventListener('click', () => {
+                document.getElementById('assetName').value = '';
+                document.getElementById('assetQuantity').value = '';
+                document.getElementById('assetBuyPrice').value = '';
+                document.getElementById('assetCurrentPrice').value = '';
+                document.getElementById('saveAssetButton').innerText = 'Tambah Aset';
+                document.getElementById('portfolio-form-title').innerText = 'Tambah Aset Baru';
+                document.getElementById('cancelEditAssetButton').classList.add('hidden');
+                editingAssetId = null;
+            });
+        };
+
+
         // --- Firebase & Data Logic ---
 
         // Function to update the main user summary data (saldo, profit, loss, monthlyTarget, dailyRecords)
@@ -1125,11 +1295,10 @@
             }
         };
 
-        // New Firestore functions for strategies
+        // Firestore functions for strategies
         const addStrategy = async (name, description) => {
             if (!db || !userId) return;
             try {
-                // FIX: Corrected Firestore collection path for strategies
                 const strategiesCollectionRef = collection(db, 'artifacts', appId, 'users', userId, 'strategies');
                 await setDoc(doc(strategiesCollectionRef), { name, description });
             } catch (e) {
@@ -1140,7 +1309,6 @@
         const editStrategy = async (id, name, description) => {
             if (!db || !userId) return;
             try {
-                // FIX: Corrected Firestore collection path for strategies
                 const strategyDocRef = doc(db, 'artifacts', appId, 'users', userId, 'strategies', id);
                 await setDoc(strategyDocRef, { name, description }, { merge: true });
             } catch (e) {
@@ -1151,13 +1319,44 @@
         const deleteStrategy = async (id) => {
             if (!db || !userId) return;
             try {
-                // FIX: Corrected Firestore collection path for strategies
                 const strategyDocRef = doc(db, 'artifacts', appId, 'users', userId, 'strategies', id);
                 await deleteDoc(strategyDocRef);
             } catch (e) {
                 console.error("Error deleting strategy: ", e);
             }
         };
+
+        // New Firestore functions for portfolio assets
+        const addAsset = async (asset) => {
+            if (!db || !userId) return;
+            try {
+                const assetsCollectionRef = collection(db, 'artifacts', appId, 'users', userId, 'portfolio_assets');
+                await setDoc(doc(assetsCollectionRef), asset);
+            } catch (e) {
+                console.error("Error adding asset: ", e);
+            }
+        };
+
+        const editAsset = async (id, updatedAsset) => {
+            if (!db || !userId) return;
+            try {
+                const assetDocRef = doc(db, 'artifacts', appId, 'users', userId, 'portfolio_assets', id);
+                await setDoc(assetDocRef, updatedAsset, { merge: true });
+            } catch (e) {
+                console.error("Error updating asset: ", e);
+            }
+        };
+
+        const deleteAsset = async (id) => {
+            if (!db || !userId) return;
+            try {
+                const assetDocRef = doc(db, 'artifacts', appId, 'users', userId, 'portfolio_assets', id);
+                await deleteDoc(assetDocRef);
+            } catch (e) {
+                console.error("Error deleting asset: ", e);
+            }
+        };
+
 
         // Centralized function to set up Firestore listeners after successful authentication
         const setupFirestoreListeners = () => {
@@ -1168,7 +1367,9 @@
 
             const userDocRef = doc(db, 'artifacts', appId, 'users', userId, 'user_data');
             const journalCollectionRef = collection(db, 'artifacts', appId, 'users', userId, 'journal_entries');
-            const strategiesCollectionRef = collection(db, 'artifacts', appId, 'users', userId, 'strategies'); // New collection reference
+            const strategiesCollectionRef = collection(db, 'artifacts', appId, 'users', userId, 'strategies');
+            const portfolioAssetsCollectionRef = collection(db, 'artifacts', appId, 'users', userId, 'portfolio_assets'); // New collection reference
+
 
             onSnapshot(userDocRef, (docSnap) => {
                 if (docSnap.exists()) {
@@ -1206,23 +1407,36 @@
                 console.error("Error listening to journal entries:", error);
             });
 
-            // New listener for strategies
             onSnapshot(strategiesCollectionRef, (snapshot) => {
                 const loadedStrategies = [];
                 snapshot.forEach(doc => {
                     loadedStrategies.push({ id: doc.id, ...doc.data() });
                 });
                 strategies = loadedStrategies; // Update the global strategies array
-                if (activeTab === 'strategy') { // Only re-render if on the strategy tab
+                if (activeTab === 'strategy') {
                     showSection('strategy-section');
                 }
             }, (error) => {
                 console.error("Error listening to strategies:", error);
             });
+
+            // New listener for portfolio assets
+            onSnapshot(portfolioAssetsCollectionRef, (snapshot) => {
+                const loadedAssets = [];
+                snapshot.forEach(doc => {
+                    loadedAssets.push({ id: doc.id, ...doc.data() });
+                });
+                portfolioAssets = loadedAssets; // Update the global portfolioAssets array
+                if (activeTab === 'portfolio') { // Only re-render if on the portfolio tab
+                    showSection('portfolio-section');
+                }
+            }, (error) => {
+                console.error("Error listening to portfolio assets:", error);
+            });
         };
 
         const showSection = (sectionId) => {
-            const sections = ['dashboard-section', 'calculator-section', 'dailyTarget-section', 'journal-section', 'calendar-section', 'strategy-section'];
+            const sections = ['dashboard-section', 'calculator-section', 'dailyTarget-section', 'journal-section', 'calendar-section', 'strategy-section', 'portfolio-section'];
             sections.forEach(id => {
                 document.getElementById(id).classList.add('hidden');
             });
@@ -1251,8 +1465,11 @@
                 case 'calendar-section':
                     renderEconomicCalendar();
                     break;
-                case 'strategy-section': // New case for strategy section
+                case 'strategy-section':
                     renderStrategy();
+                    break;
+                case 'portfolio-section': // New case for portfolio section
+                    renderPortfolio();
                     break;
             }
         };
@@ -1428,7 +1645,8 @@
             document.getElementById('nav-calculator').addEventListener('click', () => showSection('calculator-section'));
             document.getElementById('nav-dailyTarget').addEventListener('click', () => showSection('dailyTarget-section'));
             document.getElementById('nav-journal').addEventListener('click', () => showSection('journal-section'));
-            document.getElementById('nav-strategy').addEventListener('click', () => showSection('strategy-section')); // New listener for strategy tab
+            document.getElementById('nav-strategy').addEventListener('click', () => showSection('strategy-section'));
+            document.getElementById('nav-portfolio').addEventListener('click', () => showSection('portfolio-section')); // New listener for portfolio tab
             document.getElementById('nav-calendar').addEventListener('click', () => showSection('calendar-section'));
         };
     </script>
